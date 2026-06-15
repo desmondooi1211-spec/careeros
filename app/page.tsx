@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import CandidateWorkspace from '@/components/CandidateWorkspace';
 import RecruiterWorkspace from '@/components/RecruiterWorkspace';
 import SharedMarketplace from '@/components/SharedMarketplace';
+import LandingPage from '@/components/LandingPage';
 import { 
   INITIAL_COURSES, 
   INITIAL_CANDIDATES, 
@@ -56,7 +57,7 @@ export default function Home() {
       try {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         if (!currentUser) {
-          router.push('/login');
+          setUser(null);
           return;
         }
         setUser(currentUser);
@@ -69,7 +70,7 @@ export default function Home() {
         }
       } catch (err) {
         console.error('Session verification failed:', err);
-        router.push('/login');
+        setUser(null);
       } finally {
         setAuthLoading(false);
       }
@@ -410,7 +411,8 @@ Key Requirements:
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    setUser(null);
+    router.push('/');
   };
 
   if (authLoading) {
@@ -422,6 +424,10 @@ Key Requirements:
         <p className="text-sm font-semibold tracking-wide animate-pulse">Verifying CareerOS secure session...</p>
       </div>
     );
+  }
+
+  if (!user) {
+    return <LandingPage />;
   }
 
   return (
