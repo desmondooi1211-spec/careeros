@@ -217,8 +217,19 @@ export const INITIAL_CANDIDATES: Candidate[] = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
     email: 'alex.carter@example.com',
     completedCourseIds: [],
-    skills: [],
-    skillLevels: { 'React': 'Beginner', 'TypeScript': 'Beginner' },
+    skills: ['React', 'TypeScript', 'Next.js', 'Docker', 'Tailwind', 'Node.js', 'SQL', 'Git', 'REST APIs', 'HTML5/CSS3'],
+    skillLevels: {
+      'React': 'Pro',
+      'TypeScript': 'Pro',
+      'Next.js': 'Intermediate',
+      'Docker': 'Intermediate',
+      'Tailwind': 'Pro',
+      'Node.js': 'Intermediate',
+      'SQL': 'Intermediate',
+      'Git': 'Pro',
+      'REST APIs': 'Pro',
+      'HTML5/CSS3': 'Pro'
+    },
     projects: [
       {
         id: 'user-p1',
@@ -229,7 +240,8 @@ export const INITIAL_CANDIDATES: Candidate[] = [
       }
     ],
     status: 'Open for Offers',
-    isCurrentUser: true
+    isCurrentUser: true,
+    followedJobIds: []
   },
   {
     id: 'candidate-1',
@@ -254,7 +266,8 @@ export const INITIAL_CANDIDATES: Candidate[] = [
         skills: ['AI Engineering', 'Large Language Models']
       }
     ],
-    status: 'Interviewing'
+    status: 'Interviewing',
+    followedJobIds: []
   },
   {
     id: 'candidate-2',
@@ -283,7 +296,8 @@ export const INITIAL_CANDIDATES: Candidate[] = [
         skills: ['React', 'UI/UX']
       }
     ],
-    status: 'Active'
+    status: 'Active',
+    followedJobIds: []
   },
   {
     id: 'candidate-3',
@@ -301,7 +315,8 @@ export const INITIAL_CANDIDATES: Candidate[] = [
       'A/B Testing': 'Beginner'
     },
     projects: [],
-    status: 'Open for Offers'
+    status: 'Open for Offers',
+    followedJobIds: []
   }
 ];
 
@@ -312,7 +327,29 @@ export const INITIAL_JOBS: Job[] = [
     company: 'Brainwave AI',
     logo: '⚡',
     description: 'Looking for a full-stack generalist to bridge client experience with advanced AI backends. You will implement features using Gemini API interfaces and next-generation UI models.',
-    skillsNeeded: ['Gemini API', 'React', 'Prompt Engineering', 'Next.js'],
+    skillsNeeded: [
+      'HTML5/CSS3',
+      'React',
+      'TypeScript',
+      'SQL',
+      'Tailwind',
+      'Next.js',
+      'State Management',
+      'Node.js',
+      'Docker',
+      'Micro-Frontends',
+      'SSR',
+      'Server Actions',
+      'REST APIs',
+      'Kubernetes',
+      'Performance Optimization',
+      'GraphQL',
+      'Testing/Vitest',
+      'Scalability',
+      'CI/CD',
+      'Prompt Engineering',
+      'Gemini API'
+    ],
     salary: '$120k – $155k',
     type: 'Full-time',
     location: 'Remote (US/Canada)',
@@ -325,7 +362,29 @@ export const INITIAL_JOBS: Job[] = [
     company: 'Veloce Platforms',
     logo: '▲',
     description: 'Help us drive our flagship micro-frontend frameworks into Next.js 14 serverless configurations. Deep knowledge of static streaming, hydrate caching, and server actions required.',
-    skillsNeeded: ['Next.js', 'Server Actions', 'SSR', 'TypeScript'],
+    skillsNeeded: [
+      'HTML5/CSS3',
+      'React',
+      'TypeScript',
+      'SQL',
+      'Tailwind',
+      'Next.js',
+      'State Management',
+      'Node.js',
+      'Docker',
+      'Micro-Frontends',
+      'SSR',
+      'Server Actions',
+      'REST APIs',
+      'Kubernetes',
+      'Performance Optimization',
+      'GraphQL',
+      'Testing/Vitest',
+      'Scalability',
+      'CI/CD',
+      'Prompt Engineering',
+      'Gemini API'
+    ],
     salary: '$140k – $180k',
     type: 'Full-time',
     location: 'New York, NY (Hybrid)',
@@ -338,7 +397,29 @@ export const INITIAL_JOBS: Job[] = [
     company: 'Nebula Stream',
     logo: '🪐',
     description: 'We need engineers capable of running robust global deployments. Experience shaping service load policies, Multi-region Docker layouts, and complex Kubernetes schedules is key.',
-    skillsNeeded: ['Docker', 'Kubernetes', 'Scalability'],
+    skillsNeeded: [
+      'HTML5/CSS3',
+      'React',
+      'TypeScript',
+      'SQL',
+      'Tailwind',
+      'Next.js',
+      'State Management',
+      'Node.js',
+      'Docker',
+      'Micro-Frontends',
+      'SSR',
+      'Server Actions',
+      'REST APIs',
+      'Kubernetes',
+      'Performance Optimization',
+      'GraphQL',
+      'Testing/Vitest',
+      'Scalability',
+      'CI/CD',
+      'Prompt Engineering',
+      'Gemini API'
+    ],
     salary: '$160k – $210k',
     type: 'Full-time',
     location: 'Remote',
@@ -351,7 +432,12 @@ export const INITIAL_JOBS: Job[] = [
     company: 'Linear Labs',
     logo: '⚙️',
     description: 'Manage growth cycles focusing strictly on client conversion metrics. You will take charge of our telemetry, identify product activation barriers, and spearhead self-service conversion loops.',
-    skillsNeeded: ['PLG', 'Funnel Analytics', 'User Retention'],
+    skillsNeeded: [
+      'A/B Testing',
+      'User Retention',
+      'Funnel Analytics',
+      'PLG'
+    ],
     salary: '$115k – $145k',
     type: 'Contract',
     location: 'San Francisco, CA',

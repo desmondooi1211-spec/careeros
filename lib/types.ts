@@ -44,6 +44,7 @@ export interface Candidate {
   skills: string[]; // Dynamically aggregated from completed courses
   skillLevels?: Record<string, 'Beginner' | 'Intermediate' | 'Pro'>;
   targetJobId?: string;
+  followedJobIds?: string[];
   projects: Project[];
   status: 'Active' | 'Interviewing' | 'Open for Offers';
   isCurrentUser?: boolean;

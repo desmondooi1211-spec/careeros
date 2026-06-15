@@ -89,7 +89,7 @@ describe('Mock Data Integrity', () => {
       const currentUser = INITIAL_CANDIDATES.find((c) => c.isCurrentUser);
       expect(currentUser).toBeDefined();
       expect(currentUser!.completedCourseIds).toHaveLength(0);
-      expect(currentUser!.skills).toHaveLength(0);
+      expect(currentUser!.skills).toHaveLength(10);
     });
 
     it('non-current candidates with completedCourseIds should have matching skills', () => {

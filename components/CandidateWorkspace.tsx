@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { 
   GraduationCap, 
   Award, 
@@ -17,7 +18,12 @@ import {
   ShieldCheck, 
   MapPin, 
   DollarSign, 
-  Layers 
+  Layers,
+  Compass,
+  List,
+  GitBranch,
+  X,
+  Lock
 } from 'lucide-react';
 import { Course, Candidate, Job, Project, Lesson } from '@/lib/types';
 
@@ -40,24 +46,62 @@ export const SKILL_TREES: Record<string, {
     title: 'Full-Stack Developer',
     description: 'Master modular React architectures, serverless Next.js optimization, containerized orchestrations, and high-availability systems.',
     nodes: [
+      { name: 'HTML5/CSS3', x: 100, y: 50, tier: 1, description: 'Hypertext markup and semantic layout formatting.', prerequisites: [] },
       { name: 'React', x: 100, y: 150, tier: 1, description: 'Declarative component-driven interfaces and reactivity model.', prerequisites: [] },
-      { name: 'Next.js', x: 260, y: 80, tier: 2, description: 'Server-Side Rendering, App Router, static optimizations, and edge runtimes.', prerequisites: ['React'], courseId: 'course-1' },
-      { name: 'Docker', x: 260, y: 220, tier: 2, description: 'Container deployment structures, file packaging, and environments.', prerequisites: ['React'], courseId: 'course-5' },
-      { name: 'Server Actions', x: 440, y: 40, tier: 3, description: 'Zero-API server-side database mutation scope.', prerequisites: ['Next.js'], courseId: 'course-1' },
-      { name: 'SSR', x: 440, y: 120, tier: 3, description: 'Server-Side Rendering strategies and dynamic hydrations.', prerequisites: ['Next.js'], courseId: 'course-1' },
-      { name: 'Kubernetes', x: 440, y: 220, tier: 3, description: 'Container orchestration, scale triggers, and cluster networking.', prerequisites: ['Docker'], courseId: 'course-5' },
-      { name: 'Scalability', x: 620, y: 170, tier: 4, description: 'Traffic load balancing, caching loops, and cluster replication.', prerequisites: ['Kubernetes'], courseId: 'course-5' },
-      { name: 'CI/CD', x: 620, y: 270, tier: 4, description: 'Automated test systems, compile validations, and instant pipelines.', prerequisites: ['Kubernetes'], courseId: 'course-5' }
+      { name: 'TypeScript', x: 100, y: 250, tier: 1, description: 'Statically typed superset of JavaScript.', prerequisites: [] },
+      { name: 'SQL', x: 100, y: 350, tier: 1, description: 'Relational database querying and schemas.', prerequisites: [] },
+      
+      { name: 'Tailwind', x: 280, y: 50, tier: 2, description: 'Utility-first styling system and responsive design.', prerequisites: ['HTML5/CSS3'] },
+      { name: 'Next.js', x: 280, y: 130, tier: 2, description: 'Server-Side Rendering, App Router, static optimizations, and edge runtimes.', prerequisites: ['React'], courseId: 'course-1' },
+      { name: 'State Management', x: 280, y: 210, tier: 2, description: 'Global state orchestration, unidirectional flow, and store architectures.', prerequisites: ['React'] },
+      { name: 'Node.js', x: 280, y: 290, tier: 2, description: 'Server-side JavaScript runtime.', prerequisites: ['TypeScript'] },
+      { name: 'Docker', x: 280, y: 370, tier: 2, description: 'Container deployment structures, file packaging, and environments.', prerequisites: ['TypeScript'], courseId: 'course-5' },
+      
+      { name: 'Micro-Frontends', x: 460, y: 50, tier: 3, description: 'Decoupled frontend application chunks combined into a shell.', prerequisites: ['Next.js'] },
+      { name: 'SSR', x: 460, y: 130, tier: 3, description: 'Server-Side Rendering strategies and dynamic hydrations.', prerequisites: ['Next.js'], courseId: 'course-1' },
+      { name: 'Server Actions', x: 460, y: 210, tier: 3, description: 'Zero-API server-side database mutation scope.', prerequisites: ['Next.js'], courseId: 'course-1' },
+      { name: 'REST APIs', x: 460, y: 290, tier: 3, description: 'HTTP RESTful service endpoint architectures.', prerequisites: ['Node.js', 'SQL'] },
+      { name: 'Kubernetes', x: 460, y: 370, tier: 3, description: 'Container orchestration, scale triggers, and cluster networking.', prerequisites: ['Docker'], courseId: 'course-5' },
+      
+      { name: 'Performance Optimization', x: 640, y: 130, tier: 4, description: 'Hydration metrics, asset compression, and bundle size reduction.', prerequisites: ['SSR'] },
+      { name: 'GraphQL', x: 640, y: 210, tier: 4, description: 'Declarative queries and type-safe schemas.', prerequisites: ['REST APIs'] },
+      { name: 'Testing/Vitest', x: 640, y: 290, tier: 4, description: 'Component and integration test validation setups.', prerequisites: ['REST APIs'] },
+      { name: 'Scalability', x: 640, y: 370, tier: 4, description: 'Traffic load balancing, caching loops, and cluster replication.', prerequisites: ['Kubernetes'], courseId: 'course-5' },
+      { name: 'CI/CD', x: 640, y: 450, tier: 4, description: 'Automated test systems, compile validations, and instant pipelines.', prerequisites: ['Kubernetes'], courseId: 'course-5' },
+      
+      { name: 'Prompt Engineering', x: 820, y: 210, tier: 5, description: 'System constraints, personas, and structured JSON schemas.', prerequisites: ['GraphQL'], courseId: 'course-2' },
+      { name: 'Gemini API', x: 820, y: 290, tier: 5, description: 'Google Developer SDK client initialization and streaming queries.', prerequisites: ['Prompt Engineering'], courseId: 'course-2' }
     ]
   },
   'AI Specialist': {
     title: 'AI Engineering Specialist',
     description: 'Unlock vector spaces, master large language models, refine structured prompts, and coordinate Gemini agents.',
     nodes: [
-      { name: 'Large Language Models', x: 120, y: 150, tier: 1, description: 'Context windows, transformer architectures, and weights.', prerequisites: [] },
-      { name: 'Prompt Engineering', x: 290, y: 150, tier: 2, description: 'Few-shot instructions, system constraints, and JSON schemas.', prerequisites: ['Large Language Models'], courseId: 'course-2' },
-      { name: 'Gemini API', x: 480, y: 80, tier: 3, description: 'Google Developer SDK client initialization and streaming queries.', prerequisites: ['Prompt Engineering'], courseId: 'course-2' },
-      { name: 'AI Engineering', x: 480, y: 220, tier: 3, description: 'Agent loops, function calling tools, and semantic indexers.', prerequisites: ['Prompt Engineering'], courseId: 'course-2' }
+      { name: 'AI Fundamentals', x: 100, y: 400, tier: 1, description: 'Core principles of machine learning, statistical models, and pattern recognition.', prerequisites: [] },
+      { name: 'Deep Learning', x: 260, y: 400, tier: 1, description: 'Understanding layers, activation functions, and backpropagation.', prerequisites: ['AI Fundamentals'] },
+      { name: 'Neural Networks', x: 420, y: 400, tier: 2, description: 'Designing multi-layer perceptrons and understanding loss gradients.', prerequisites: ['Deep Learning'] },
+      { name: 'Transformers', x: 580, y: 400, tier: 2, description: 'Attention mechanisms, positional encoding, and self-attention blocks.', prerequisites: ['Neural Networks'] },
+      { name: 'Large Language Models', x: 780, y: 400, tier: 3, description: 'Context windows, transformer architectures, and weights.', prerequisites: ['Transformers'] },
+      
+      { name: 'Embeddings', x: 980, y: 250, tier: 3, description: 'Mapping words and documents into dense, high-dimensional vector spaces.', prerequisites: ['Large Language Models'] },
+      { name: 'Data Chunking', x: 1140, y: 150, tier: 4, description: 'Segmenting large documents into context-window-friendly tokens.', prerequisites: ['Embeddings'] },
+      { name: 'Vector Databases', x: 1140, y: 250, tier: 4, description: 'Indexing, storing, and querying high-dimensional vectors (Pinecone, Chroma).', prerequisites: ['Embeddings'] },
+      { name: 'Semantic Search', x: 1300, y: 250, tier: 4, description: 'Cosine similarity matching and nearest neighbor algorithms.', prerequisites: ['Vector Databases'] },
+      
+      { name: 'Prompt Engineering', x: 980, y: 550, tier: 3, description: 'System constraints, personas, and structured JSON schemas.', prerequisites: ['Large Language Models'], courseId: 'course-2' },
+      { name: 'Few-Shot Prompting', x: 1140, y: 500, tier: 4, description: 'Providing concrete input/output pairings inside the message thread.', prerequisites: ['Prompt Engineering'] },
+      { name: 'Chain of Thought', x: 1140, y: 600, tier: 4, description: 'Forcing the model to output intermediate reasoning steps before answering.', prerequisites: ['Prompt Engineering'] },
+      { name: 'Prompt Chaining', x: 1300, y: 550, tier: 4, description: 'Piping outputs from one prompt into the input of the next prompt.', prerequisites: ['Few-Shot Prompting', 'Chain of Thought'] },
+      
+      { name: 'RAG Systems', x: 1480, y: 250, tier: 5, description: 'Retrieval-Augmented Generation: merging semantic search with LLM generation.', prerequisites: ['Semantic Search', 'Prompt Engineering'] },
+      { name: 'Gemini API', x: 1480, y: 550, tier: 5, description: 'Google Developer SDK client initialization and streaming queries.', prerequisites: ['Prompt Chaining'], courseId: 'course-2' },
+      
+      { name: 'Function Calling', x: 1680, y: 480, tier: 6, description: 'Providing tool schemas that models can execute deterministically.', prerequisites: ['Gemini API'] },
+      { name: 'LangChain', x: 1680, y: 620, tier: 6, description: 'Orchestrating complex LLM pipelines, memory buffers, and output parsers.', prerequisites: ['Gemini API'] },
+      { name: 'Agentic AI', x: 1880, y: 550, tier: 7, description: 'Autonomous loops, tool coordination, and multi-agent frameworks.', prerequisites: ['Function Calling', 'LangChain'], courseId: 'course-2' },
+      
+      { name: 'Model Fine-Tuning', x: 1480, y: 720, tier: 5, description: 'Adjusting model weights using PEFT or LoRA on domain-specific data.', prerequisites: ['Prompt Chaining'] },
+      { name: 'LLMOps', x: 1680, y: 720, tier: 6, description: 'Deployment scaling, latency monitoring, and continuous evals.', prerequisites: ['Model Fine-Tuning'] }
     ]
   },
   'Product Designer': {
@@ -84,6 +128,86 @@ export const SKILL_TREES: Record<string, {
 
 export const renderSkillIcon = (skill: string) => {
   switch (skill) {
+    case 'TypeScript':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 3h18v18H3z" />
+          <path d="M14 17h2V9h-4M7 9h6M10 9v8" />
+        </svg>
+      );
+    case 'HTML5/CSS3':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2L2 5l1.5 14 8.5 3 8.5-3L22 5L12 2z" />
+          <path d="M12 6v12M8 10h8" />
+        </svg>
+      );
+    case 'Tailwind':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 3c-1.2 0-2.4.6-3.2 1.6-1.8 2.2-1.4 5.4.8 7.2.8.6 1.8 1 2.8.8 1-.2 1.6-.8 2-1.6.4-.8.4-1.8 0-2.6-.4-.8-1.2-1.2-2.4-1.2h-.2" />
+          <path d="M12 21c1.2 0 2.4-.6 3.2-1.6 1.8-2.2 1.4-5.4-.8-7.2-.8-.6-1.8-1-2.8-.8-1 .2-1.6.8-2 1.6-.4.8-.4 1.8 0 2.6.4.8 1.2 1.2 2.4 1.2h.2" />
+        </svg>
+      );
+    case 'State Management':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 0h6v6h-6z" />
+          <path d="M10 7h4M10 17h4M7 10v4M17 10v4" strokeDasharray="2 2" />
+        </svg>
+      );
+    case 'Node.js':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" />
+          <path d="M12 22V12M3 7l9 5 9-5" />
+        </svg>
+      );
+    case 'Testing/Vitest':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9 12l2 2 4-4" />
+        </svg>
+      );
+    case 'REST APIs':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="7" height="5" rx="1" />
+          <rect x="14" y="3" width="7" height="5" rx="1" />
+          <rect x="3" y="16" width="7" height="5" rx="1" />
+          <rect x="14" y="16" width="7" height="5" rx="1" />
+          <path d="M10 5.5h4M10 18.5h4M12 8v8" />
+        </svg>
+      );
+    case 'GraphQL':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        </svg>
+      );
+    case 'SQL':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6" />
+        </svg>
+      );
+    case 'Performance Optimization':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v6l4 2M16 2a10 10 0 0 1 4 4" />
+        </svg>
+      );
+    case 'Micro-Frontends':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          <path d="M2 17l10 5 10-5" />
+          <path d="M6 12v5M18 12v5" strokeDasharray="2 2" />
+        </svg>
+      );
     case 'React':
       return (
         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -164,11 +288,133 @@ export const renderSkillIcon = (skill: string) => {
           <path d="M12 3l3 6 6 3-6 3-3 6-3-6-6-3 6-3 3-6z" />
         </svg>
       );
-    case 'AI Engineering':
+    case 'AI Fundamentals':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2L2 22h20L12 2z" />
+          <circle cx="12" cy="14" r="3" />
+        </svg>
+      );
+    case 'Deep Learning':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 12h16M4 6h16M4 18h16M8 6L16 12L8 18" />
+        </svg>
+      );
+    case 'Neural Networks':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="4" cy="12" r="2" />
+          <circle cx="12" cy="6" r="2" />
+          <circle cx="12" cy="18" r="2" />
+          <circle cx="20" cy="12" r="2" />
+          <path d="M6 12l4-6M6 12l4 6M14 6l4 6M14 18l4-6M12 8v8" />
+        </svg>
+      );
+    case 'Transformers':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+          <path d="M8 8l4 4-4 4M16 8l-4 4 4 4" />
+        </svg>
+      );
+    case 'Embeddings':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" strokeDasharray="4 4" />
+          <circle cx="12" cy="12" r="4" fill="currentColor" />
+        </svg>
+      );
+    case 'Data Chunking':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 6h16M4 12h16M4 18h16M10 6v12M14 6v12" />
+        </svg>
+      );
+    case 'Vector Databases':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <ellipse cx="12" cy="6" rx="8" ry="3" />
+          <path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6" />
+          <path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3" />
+          <circle cx="12" cy="12" r="1" fill="currentColor" />
+          <circle cx="8" cy="14" r="1" fill="currentColor" />
+          <circle cx="16" cy="10" r="1" fill="currentColor" />
+        </svg>
+      );
+    case 'Semantic Search':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="10" cy="10" r="6" />
+          <path d="M21 21l-6-6" />
+          <path d="M10 7v3l2 2" />
+        </svg>
+      );
+    case 'Few-Shot Prompting':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M7 8h10M7 12h10M7 16h4" />
+          <circle cx="18" cy="16" r="1" fill="currentColor" />
+        </svg>
+      );
+    case 'Chain of Thought':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="8" cy="12" r="3" />
+          <circle cx="16" cy="12" r="3" />
+          <path d="M11 12h2" strokeDasharray="2 2" />
+          <path d="M12 4v4M12 16v4" />
+        </svg>
+      );
+    case 'Prompt Chaining':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        </svg>
+      );
+    case 'RAG Systems':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <path d="M14 14l-4 4-4-4" />
+          <path d="M10 6.5h4" strokeDasharray="2 2" />
+        </svg>
+      );
+    case 'Function Calling':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 4v16M4 12h16M6 6l12 12M6 18L18 6" />
+          <circle cx="12" cy="12" r="3" fill="currentColor" />
+        </svg>
+      );
+    case 'LangChain':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 10h4v4H4zM16 10h4v4h-4zM8 12h8" />
+          <path d="M12 4v4M12 16v4" strokeDasharray="2 2" />
+        </svg>
+      );
+    case 'Agentic AI':
       return (
         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="5" y="5" width="14" height="14" rx="2" />
           <path d="M9 9h6v6H9zM9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M1 15h4M19 9h4M19 15h4" />
+        </svg>
+      );
+    case 'Model Fine-Tuning':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      );
+    case 'LLMOps':
+      return (
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
       );
     case 'Typography':
@@ -239,19 +485,57 @@ export const getPathConnections = (pathName: string) => {
   switch (pathName) {
     case 'Full-Stack':
       return [
+        { from: 'HTML5/CSS3', to: 'Tailwind' },
         { from: 'React', to: 'Next.js' },
-        { from: 'React', to: 'Docker' },
-        { from: 'Next.js', to: 'Server Actions' },
+        { from: 'React', to: 'State Management' },
+        { from: 'TypeScript', to: 'Node.js' },
+        { from: 'TypeScript', to: 'Docker' },
+        { from: 'SQL', to: 'REST APIs' },
+        
+        { from: 'Next.js', to: 'Micro-Frontends' },
         { from: 'Next.js', to: 'SSR' },
+        { from: 'Next.js', to: 'Server Actions' },
+        { from: 'Node.js', to: 'REST APIs' },
         { from: 'Docker', to: 'Kubernetes' },
+        
+        { from: 'SSR', to: 'Performance Optimization' },
+        { from: 'REST APIs', to: 'GraphQL' },
+        { from: 'REST APIs', to: 'Testing/Vitest' },
         { from: 'Kubernetes', to: 'Scalability' },
-        { from: 'Kubernetes', to: 'CI/CD' }
+        { from: 'Kubernetes', to: 'CI/CD' },
+        
+        { from: 'GraphQL', to: 'Prompt Engineering' },
+        { from: 'Prompt Engineering', to: 'Gemini API' }
       ];
     case 'AI Specialist':
       return [
+        { from: 'AI Fundamentals', to: 'Deep Learning' },
+        { from: 'Deep Learning', to: 'Neural Networks' },
+        { from: 'Neural Networks', to: 'Transformers' },
+        { from: 'Transformers', to: 'Large Language Models' },
+        
+        { from: 'Large Language Models', to: 'Embeddings' },
+        { from: 'Embeddings', to: 'Vector Databases' },
+        { from: 'Vector Databases', to: 'Semantic Search' },
+        { from: 'Embeddings', to: 'Data Chunking' },
+        
         { from: 'Large Language Models', to: 'Prompt Engineering' },
-        { from: 'Prompt Engineering', to: 'Gemini API' },
-        { from: 'Prompt Engineering', to: 'AI Engineering' }
+        { from: 'Prompt Engineering', to: 'Few-Shot Prompting' },
+        { from: 'Prompt Engineering', to: 'Chain of Thought' },
+        { from: 'Few-Shot Prompting', to: 'Prompt Chaining' },
+        { from: 'Chain of Thought', to: 'Prompt Chaining' },
+        
+        { from: 'Semantic Search', to: 'RAG Systems' },
+        { from: 'Prompt Engineering', to: 'RAG Systems' },
+        
+        { from: 'Prompt Chaining', to: 'Gemini API' },
+        { from: 'Gemini API', to: 'Function Calling' },
+        { from: 'Gemini API', to: 'LangChain' },
+        { from: 'Function Calling', to: 'Agentic AI' },
+        { from: 'LangChain', to: 'Agentic AI' },
+        
+        { from: 'Prompt Chaining', to: 'Model Fine-Tuning' },
+        { from: 'Model Fine-Tuning', to: 'LLMOps' }
       ];
     case 'Product Designer':
       return [
@@ -269,6 +553,71 @@ export const getPathConnections = (pathName: string) => {
       return [];
   }
 };
+
+export const PROFILE_SKILL_COORDINATES: Record<string, { x: number; y: number; category: string; description: string }> = {
+  // Frontend/Web Path
+  'HTML5/CSS3': { x: 80, y: 70, category: 'Engineering', description: 'Hypertext markup and semantic layout formatting.' },
+  'Tailwind': { x: 220, y: 50, category: 'Design', description: 'Utility-first styling system and responsive design.' },
+  'React': { x: 220, y: 110, category: 'Engineering', description: 'Declarative component-driven interfaces and reactivity.' },
+  'TypeScript': { x: 360, y: 110, category: 'Engineering', description: 'Statically typed superset of Javascript.' },
+  'Next.js': { x: 500, y: 110, category: 'Engineering', description: 'App Router, Server Components, and SSR optimizations.' },
+  'Server Actions': { x: 640, y: 50, category: 'Engineering', description: 'Zero-API server-side database mutation scope.' },
+  'SSR': { x: 640, y: 150, category: 'Engineering', description: 'Server-Side Rendering strategies and dynamic hydration.' },
+
+  // Backend & Data
+  'SQL': { x: 80, y: 220, category: 'Engineering', description: 'Relational database querying and schemas.' },
+  'Node.js': { x: 220, y: 220, category: 'Engineering', description: 'Server-side Javascript runtime.' },
+  'REST APIs': { x: 360, y: 220, category: 'Engineering', description: 'HTTP RESTful service endpoint architectures.' },
+
+  // DevOps & Ops
+  'Git': { x: 80, y: 335, category: 'Engineering', description: 'Distributed version control and branch coordination.' },
+  'Docker': { x: 220, y: 335, category: 'Engineering', description: 'Container packaging, deployment environments, and isolation.' },
+  'Kubernetes': { x: 360, y: 335, category: 'Engineering', description: 'Container orchestration, cluster scaling, and networking.' },
+  'Scalability': { x: 500, y: 295, category: 'Engineering', description: 'Traffic load balancing, caching, and database replication.' },
+  'CI/CD': { x: 500, y: 375, category: 'Engineering', description: 'Automated test systems and compilation pipelines.' },
+
+  // AI Specialists
+  'Large Language Models': { x: 220, y: 440, category: 'Artificial Intelligence', description: 'Context windows, transformer architectures, and weights.' },
+  'Prompt Engineering': { x: 360, y: 440, category: 'Artificial Intelligence', description: 'Few-shot instructions, system constraints, and schemas.' },
+  'Gemini API': { x: 500, y: 440, category: 'Artificial Intelligence', description: 'Google SDK model client integration and streaming queries.' },
+  'AI Engineering': { x: 640, y: 440, category: 'Artificial Intelligence', description: 'Agent loops, function calling tools, and semantic indexers.' },
+
+  // Product Design
+  'Typography': { x: 80, y: 550, category: 'Design', description: 'Font pairings, rhythms, line lengths, and weights.' },
+  'UI/UX': { x: 220, y: 550, category: 'Design', description: 'User patterns, click maps, visual layouts, and contrast.' },
+  'Figma': { x: 360, y: 550, category: 'Design', description: 'Vector editing components, variants, and design grids.' },
+  'Design Systems': { x: 500, y: 550, category: 'Design', description: 'Dynamic primitive tokens, variables, and code translations.' },
+
+  // Product Growth
+  'A/B Testing': { x: 80, y: 660, category: 'Product', description: 'Controlled variables, cohort analysis, and significance.' },
+  'User Retention': { x: 220, y: 660, category: 'Product', description: 'Cohort retention loops and user activation events.' },
+  'Funnel Analytics': { x: 360, y: 660, category: 'Product', description: 'Click tracking, conversion maps, and drop-off matrices.' },
+  'PLG': { x: 500, y: 660, category: 'Product', description: 'Product-led growth, time-to-value, and viral onboarding loops.' }
+};
+
+export const PROFILE_SKILL_CONNECTIONS = [
+  { from: 'HTML5/CSS3', to: 'React' },
+  { from: 'HTML5/CSS3', to: 'Tailwind' },
+  { from: 'React', to: 'TypeScript' },
+  { from: 'TypeScript', to: 'Next.js' },
+  { from: 'Next.js', to: 'Server Actions' },
+  { from: 'Next.js', to: 'SSR' },
+  { from: 'SQL', to: 'Node.js' },
+  { from: 'Node.js', to: 'REST APIs' },
+  { from: 'Git', to: 'Docker' },
+  { from: 'Docker', to: 'Kubernetes' },
+  { from: 'Kubernetes', to: 'Scalability' },
+  { from: 'Kubernetes', to: 'CI/CD' },
+  { from: 'Large Language Models', to: 'Prompt Engineering' },
+  { from: 'Prompt Engineering', to: 'Gemini API' },
+  { from: 'Prompt Engineering', to: 'AI Engineering' },
+  { from: 'Typography', to: 'UI/UX' },
+  { from: 'UI/UX', to: 'Figma' },
+  { from: 'UI/UX', to: 'Design Systems' },
+  { from: 'A/B Testing', to: 'User Retention' },
+  { from: 'User Retention', to: 'Funnel Analytics' },
+  { from: 'User Retention', to: 'PLG' }
+];
 
 export const GAME_DATA: Record<string, {
   title: string;
@@ -326,6 +675,126 @@ export const GAME_DATA: Record<string, {
   }
 };
 
+export const getJobSpecialization = (job: Job) => {
+  const title = (job.title || '').toLowerCase();
+  if (title.includes('full-stack') || title.includes('frontend') || title.includes('systems') || title.includes('reliability') || title.includes('devops')) {
+    return 'Full-Stack';
+  }
+  if (title.includes('ai') || title.includes('machine learning') || title.includes('data scientist')) {
+    return 'AI Specialist';
+  }
+  if (title.includes('designer') || title.includes('design') || title.includes('ui') || title.includes('ux')) {
+    return 'Product Designer';
+  }
+  if (title.includes('product manager') || title.includes('pm') || title.includes('product innovation')) {
+    return 'Product Manager';
+  }
+  
+  // Fallback to skill-based
+  const skillsNeeded = job.skillsNeeded || [];
+  if (skillsNeeded.includes('Gemini API') || skillsNeeded.includes('AI Engineering') || skillsNeeded.includes('Large Language Models')) return 'AI Specialist';
+  if (skillsNeeded.includes('Next.js') || skillsNeeded.includes('Server Actions') || skillsNeeded.includes('SSR')) return 'Full-Stack';
+  if (skillsNeeded.includes('Figma') || skillsNeeded.includes('Design Systems') || skillsNeeded.includes('UI/UX')) return 'Product Designer';
+  if (skillsNeeded.includes('PLG') || skillsNeeded.includes('User Retention') || skillsNeeded.includes('Funnel Analytics')) return 'Product Manager';
+  
+  return 'Full-Stack';
+};
+
+export const getNodeDepths = (nodes: SkillNode[]): Record<string, number> => {
+  const depths: Record<string, number> = {};
+  
+  const getDepth = (name: string): number => {
+    if (name in depths) return depths[name];
+    const node = nodes.find(n => n.name === name);
+    if (!node || !node.prerequisites || node.prerequisites.length === 0) {
+      depths[name] = 0;
+      return 0;
+    }
+    const prereqDepths = node.prerequisites.map(p => getDepth(p));
+    const maxPrereqDepth = Math.max(...prereqDepths);
+    depths[name] = maxPrereqDepth + 1;
+    return depths[name];
+  };
+
+  nodes.forEach(node => {
+    getDepth(node.name);
+  });
+
+  return depths;
+};
+
+export const getProfileNodeDepths = (): Record<string, number> => {
+  const prerequisites: Record<string, string[]> = {};
+  
+  Object.keys(PROFILE_SKILL_COORDINATES).forEach(skillName => {
+    prerequisites[skillName] = [];
+  });
+  
+  PROFILE_SKILL_CONNECTIONS.forEach(conn => {
+    if (prerequisites[conn.to]) {
+      prerequisites[conn.to].push(conn.from);
+    }
+  });
+
+  const depths: Record<string, number> = {};
+
+  const getDepth = (name: string): number => {
+    if (name in depths) return depths[name];
+    const prereqs = prerequisites[name] || [];
+    if (prereqs.length === 0) {
+      depths[name] = 0;
+      return 0;
+    }
+    const maxPrereqDepth = Math.max(...prereqs.map(p => getDepth(p)));
+    depths[name] = maxPrereqDepth + 1;
+    return depths[name];
+  };
+
+  Object.keys(PROFILE_SKILL_COORDINATES).forEach(name => {
+    getDepth(name);
+  });
+
+  return depths;
+};
+
+export const getSkillsWithAncestors = (targetSkills: string[], nodes: SkillNode[]): string[] => {
+  const visited = new Set<string>();
+
+  const traverse = (skillName: string) => {
+    if (visited.has(skillName)) return;
+    visited.add(skillName);
+    const node = nodes.find(n => n.name === skillName);
+    if (node && node.prerequisites) {
+      node.prerequisites.forEach(p => traverse(p));
+    }
+  };
+
+  targetSkills.forEach(skill => traverse(skill));
+  return Array.from(visited);
+};
+
+export const getProfileSkillsWithAncestors = (targetSkills: string[]): string[] => {
+  const visited = new Set<string>();
+
+  const prerequisites: Record<string, string[]> = {};
+  PROFILE_SKILL_CONNECTIONS.forEach(conn => {
+    if (!prerequisites[conn.to]) {
+      prerequisites[conn.to] = [];
+    }
+    prerequisites[conn.to].push(conn.from);
+  });
+
+  const traverse = (skillName: string) => {
+    if (visited.has(skillName)) return;
+    visited.add(skillName);
+    const prereqs = prerequisites[skillName] || [];
+    prereqs.forEach(p => traverse(p));
+  };
+
+  targetSkills.forEach(skill => traverse(skill));
+  return Array.from(visited);
+};
+
 interface CandidateWorkspaceProps {
   courses: Course[];
   candidate: Candidate;
@@ -338,6 +807,8 @@ interface CandidateWorkspaceProps {
   appliedJobIds: string[];
   onUpdateTargetJob?: (jobId: string | undefined) => void;
   onUpdateSkillLevel?: (skill: string, newLevel: 'Beginner' | 'Intermediate' | 'Pro') => void;
+  onFollowJob?: (jobId: string) => void;
+  onUnfollowJob?: (jobId: string) => void;
 }
 
 export default function CandidateWorkspace({
@@ -351,9 +822,15 @@ export default function CandidateWorkspace({
   onUpdateStatus,
   appliedJobIds,
   onUpdateTargetJob,
-  onUpdateSkillLevel
+  onUpdateSkillLevel,
+  onFollowJob,
+  onUnfollowJob
 }: CandidateWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<'learning' | 'profile' | 'opportunities' | 'roadmaps'>('learning');
+  const [profileView, setProfileView] = useState<'list' | 'tree'>('tree');
+  const [showCurrentProgress, setShowCurrentProgress] = useState(false);
+  const [myPathView, setMyPathView] = useState<'hub' | 'detail'>('hub');
+  const [profileHoveredSkill, setProfileHoveredSkill] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -363,6 +840,7 @@ export default function CandidateWorkspace({
 
   // Gamified Skill Tree states
   const [selectedPath, setSelectedPath] = useState<'Full-Stack' | 'AI Specialist' | 'Product Designer' | 'Product Manager'>('Full-Stack');
+  const [activeTargetJobId, setActiveTargetJobId] = useState<string | null>(null);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
   const [activeAssessmentSkill, setActiveAssessmentSkill] = useState<string | null>(null);
   const [assessmentStep, setAssessmentStep] = useState<number>(0);
@@ -376,12 +854,57 @@ export default function CandidateWorkspace({
   const [jobSearch, setJobSearch] = useState('');
   const [selectedSkillFilter, setSelectedSkillFilter] = useState<string>('All');
 
+  // Viewport dimensions state to calculate initial scale to fit the window dynamically
+  const [viewportSize, setViewportSize] = useState({ width: 1000, height: 600 });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const updateDimensions = () => {
+        const pathEl = document.getElementById('path-detail-tree-canvas');
+        const profileEl = document.getElementById('profile-skill-tree-canvas');
+        const el = pathEl || profileEl;
+        if (el && el.clientWidth > 0 && el.clientHeight > 0) {
+          setViewportSize({
+            width: el.clientWidth,
+            height: el.clientHeight
+          });
+        } else {
+          const defaultHeight = activeTab === 'roadmaps' ? 600 : 500;
+          setViewportSize({
+            width: Math.max(window.innerWidth - 380, 600),
+            height: defaultHeight
+          });
+        }
+      };
+      updateDimensions();
+      window.addEventListener('resize', updateDimensions);
+      const timer = setTimeout(updateDimensions, 150);
+      return () => {
+        window.removeEventListener('resize', updateDimensions);
+        clearTimeout(timer);
+      };
+    }
+  }, [activeTab, profileView, myPathView, selectedPath, showCurrentProgress]);
+
   // Interactive project builder form state
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [newProjTitle, setNewProjTitle] = useState('');
   const [newProjDesc, setNewProjDesc] = useState('');
   const [newProjSkills, setNewProjSkills] = useState('');
   const [newProjLink, setNewProjLink] = useState('');
+
+  const getActiveJobForPath = () => {
+    if (activeTargetJobId) {
+      const job = jobs.find(j => j.id === activeTargetJobId);
+      if (job && getJobSpecialization(job) === selectedPath) {
+        return job;
+      }
+    }
+    const followedJobsForPath = jobs.filter(j => 
+      (candidate.followedJobIds || []).includes(j.id) && 
+      getJobSpecialization(j) === selectedPath
+    );
+    return followedJobsForPath[0] || null;
+  };
 
   // Helper methods for interactive skill tree progression
   const isUnlocked = (nodeName: string) => {
@@ -549,8 +1072,8 @@ export default function CandidateWorkspace({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Layers className="w-4 h-4 text-violet-500" />
-            <span>Roadmap Trees</span>
+            <Compass className="w-4 h-4 text-violet-500" />
+            <span>My Path</span>
           </button>
           
           <button
@@ -747,348 +1270,585 @@ export default function CandidateWorkspace({
 
       {/* GAME-STYLE ROADMAP TREES TAB PANEL */}
       {activeTab === 'roadmaps' && (
-        <div className="space-y-6 animate-fadeIn" id="tab-panels-roadmaps">
-          {/* Target Job Tracker Banner */}
-          {candidate.targetJobId && (
-            (() => {
-              const targetJob = jobs.find(j => j.id === candidate.targetJobId);
-              if (!targetJob) return null;
-              
-              const matchScore = calculateMatchScore(targetJob.skillsNeeded);
-              const missingSkills = targetJob.skillsNeeded.filter(s => !candidate.skills.includes(s));
+        <div className="space-y-6" id="tab-panels-roadmaps">
+          <AnimatePresence mode="wait">
+          {myPathView === 'hub' ? (
+            /* HUB VIEW - SHOW ROLE CARDS */
+            <motion.div
+              key="hub-view"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+              className="space-y-6" id="my-paths-hub"
+            >
+              <div>
+                <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <Compass className="w-5 h-5 text-indigo-600 animate-pulse" />
+                  <span>My Learning Paths</span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Select a career path or continue following a target job vacancy to unlock verified credentials.
+                </p>
+              </div>
 
-              return (
-                <div className="bg-gradient-to-r from-violet-900 via-indigo-900 to-slate-900 rounded-2xl p-5 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-indigo-550/30 shadow-lg relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                    <Award className="w-48 h-48" />
-                  </div>
-                  
-                  <div className="space-y-1 relative z-10">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-violet-500/30 text-violet-200 border border-violet-500/20 font-bold uppercase tracking-wider font-mono">
-                      Pinned Target Goal
-                    </span>
-                    <h3 className="text-lg font-black tracking-tight">{targetJob.title}</h3>
-                    <p className="text-xs text-slate-300 font-medium">At {targetJob.company} • {targetJob.location} • {targetJob.salary}</p>
-                    {missingSkills.length > 0 ? (
-                      <p className="text-[11px] text-indigo-300 mt-2 font-mono">
-                        Missing Skills to Unlock: <span className="font-bold text-white">{missingSkills.join(', ')}</span>
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-emerald-400 mt-2 font-mono font-bold flex items-center gap-1">
-                        <Check className="w-3.5 h-3.5" /> All competency targets unlocked! You have 100% verified fit.
-                      </p>
-                    )}
-                  </div>
+              {/* Followed Job Path Cards (Multiple) */}
+              <AnimatePresence>
+              {(candidate.followedJobIds || []).map((followedId, fIdx) => {
+                const targetJob = jobs.find(j => j.id === followedId);
+                if (!targetJob) return null;
 
-                  <div className="text-left md:text-right shrink-0 relative z-10 flex flex-col items-start md:items-end gap-1.5">
-                    <span className="text-xs font-mono text-slate-400 uppercase font-semibold">Match score</span>
-                    <span className="text-3xl font-black text-emerald-400 leading-none">{matchScore}%</span>
-                    <button 
-                      onClick={() => {
-                        setActiveTab('opportunities');
-                        setJobSearch(targetJob.company);
-                      }}
-                      className="mt-2 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-all"
+                const matchScore = calculateMatchScore(targetJob.skillsNeeded);
+                const missingSkills = targetJob.skillsNeeded.filter(s => !candidate.skills.includes(s));
+                const possessed = targetJob.skillsNeeded.filter(s => candidate.skills.includes(s)).length;
+                const total = targetJob.skillsNeeded.length;
+                const percentage = Math.round((possessed / (total || 1)) * 100);
+
+                return (
+                  <motion.div
+                    key={followedId}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: fIdx * 0.08 }}
+                    className="bg-gradient-to-r from-violet-900 via-indigo-900 to-slate-900 rounded-3xl p-6 text-white border border-indigo-500/30 shadow-lg relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+                  >
+                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                      <Award className="w-48 h-48" />
+                    </div>
+
+                    {/* Unfollow Button */}
+                    <button
+                      onClick={() => onUnfollowJob?.(followedId)}
+                      className="absolute top-3 right-3 z-20 w-7 h-7 rounded-full bg-slate-800/60 hover:bg-rose-600/80 border border-slate-700 hover:border-rose-500 flex items-center justify-center transition-all duration-200 group cursor-pointer"
+                      title="Unfollow this path"
                     >
-                      View Vacancy Details
+                      <X className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
                     </button>
+
+                    <div className="space-y-3 relative z-10 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] bg-pink-500/30 text-pink-200 border border-pink-500/20 font-bold uppercase tracking-wider font-mono">
+                          Following Path
+                        </span>
+                        <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                          {percentage}% COMPLETE
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black tracking-tight">{targetJob.title}</h3>
+                        <p className="text-xs text-slate-355 font-medium">At {targetJob.company} • {targetJob.location} • {targetJob.salary}</p>
+                      </div>
+
+                      <div className="space-y-1 max-w-md">
+                        <div className="flex justify-between text-[10px] font-semibold text-slate-300">
+                          <span>Target Skills ({possessed} / {total})</span>
+                          <span>{percentage}%</span>
+                        </div>
+                        <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+                          <motion.div className="bg-emerald-500 h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${percentage}%` }} transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 }} />
+                        </div>
+                      </div>
+
+                      {missingSkills.length > 0 ? (
+                        <p className="text-[11px] text-indigo-300 font-mono">
+                          Missing Skills: <span className="font-bold text-white">{missingSkills.join(', ')}</span>
+                        </p>
+                      ) : (
+                        <p className="text-[11px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Ready to Apply! 100% verified fit.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 relative z-10 flex flex-row md:flex-col gap-2.5 w-full md:w-auto items-stretch md:items-end justify-between md:justify-center">
+                      <div className="text-left md:text-right">
+                        <span className="text-xs font-mono text-slate-400 uppercase font-semibold block">Match score</span>
+                        <span className="text-3xl font-black text-emerald-400 leading-none">{matchScore}%</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const spec = getJobSpecialization(targetJob);
+                          setSelectedPath(spec as any);
+                          setMyPathView('detail');
+                          setActiveTargetJobId(targetJob.id);
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer hover:scale-105 active:scale-95"
+                      >
+                        <span>Start Learning</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+              </AnimatePresence>
+
+              {/* Specialization Path Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="specializations-hub-grid">
+                {Object.keys(SKILL_TREES).map((key, cardIdx) => {
+                  const path = SKILL_TREES[key];
+                  const pathSkillsList = path.nodes.map(n => n.name);
+                  
+                  const getPathProgress = (skillsList: string[]) => {
+                    const possessed = skillsList.filter(s => candidate.skills.includes(s)).length;
+                    return {
+                      possessed,
+                      total: skillsList.length,
+                      percentage: Math.round((possessed / (skillsList.length || 1)) * 100)
+                    };
+                  };
+                  const progress = getPathProgress(pathSkillsList);
+
+                  // Unique styling gradients for specialization cards
+                  const gradients: Record<string, string> = {
+                    'Full-Stack': 'from-blue-500/5 to-indigo-500/5 hover:border-indigo-400/40 hover:from-blue-500/10 hover:to-indigo-500/10',
+                    'AI Specialist': 'from-purple-500/5 to-fuchsia-500/5 hover:border-purple-400/40 hover:from-purple-500/10 hover:to-fuchsia-500/10',
+                    'Product Designer': 'from-pink-500/5 to-rose-500/5 hover:border-pink-400/40 hover:from-pink-500/10 hover:to-rose-500/10',
+                    'Product Manager': 'from-amber-500/5 to-orange-500/5 hover:border-amber-400/40 hover:from-amber-500/10 hover:to-orange-500/10'
+                  };
+
+                  const badges: Record<string, string> = {
+                    'Full-Stack': 'bg-indigo-50 text-indigo-700',
+                    'AI Specialist': 'bg-purple-50 text-purple-700',
+                    'Product Designer': 'bg-pink-50 text-pink-700',
+                    'Product Manager': 'bg-amber-50 text-amber-700'
+                  };
+
+                  return (
+                    <motion.div 
+                      key={key}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1], delay: 0.1 + cardIdx * 0.1 }}
+                      className={`bg-white rounded-3xl border border-slate-150 p-6 flex flex-col justify-between gap-6 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-br ${gradients[key]}`}
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black tracking-wider uppercase font-mono ${badges[key]}`}>
+                            {key}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono font-bold">
+                            {progress.percentage}% Complete
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="text-base font-black text-slate-900 tracking-tight">{path.title}</h3>
+                          <p className="text-xs text-slate-500 mt-1.5 leading-relaxed line-clamp-2">{path.description}</p>
+                        </div>
+
+                        {/* Skill Tags list */}
+                        <div className="flex flex-wrap gap-1">
+                          {pathSkillsList.slice(0, 4).map(skill => (
+                            <span key={skill} className={`text-[9.5px] font-semibold px-2 py-0.5 rounded border ${
+                              candidate.skills.includes(skill) 
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100 font-bold' 
+                                : 'bg-slate-50 text-slate-400 border-slate-100'
+                            }`}>
+                              {skill}
+                            </span>
+                          ))}
+                          {pathSkillsList.length > 4 && (
+                            <span className="text-[9.5px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-500 border border-slate-150 rounded">
+                              +{pathSkillsList.length - 4} more
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="space-y-1">
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-indigo-600 h-full rounded-full transition-all duration-500" style={{ width: `${progress.percentage}%` }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        id={`start-learning-btn-${key.replace(/\s+/g, '-')}`}
+                        onClick={() => {
+                          setSelectedPath(key as any);
+                          setMyPathView('detail');
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:shadow hover:scale-[1.03] active:scale-95"
+                      >
+                        <span>{progress.possessed > 0 ? 'Resume Learning' : 'Start Learning'}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          ) : (
+            /* DETAILED VIEW - INTERACTIVE PATH SKILL TREE */
+            (() => {
+              const activeJob = getActiveJobForPath();
+              return (
+                <motion.div
+                  key="detail-view"
+                  initial={{ opacity: 0, x: 60 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -60 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 space-y-6 shadow-sm" id="my-path-detail-view"
+                >
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-5 gap-4">
+                    <div className="flex items-center gap-3">
+                      <button
+                        id="back-to-paths-btn"
+                        onClick={() => setMyPathView('hub')}
+                        className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-slate-900 transition-all font-bold text-xs flex items-center gap-1 border border-slate-200 bg-white cursor-pointer"
+                      >
+                        <span>← Back to My Paths</span>
+                      </button>
+                      <div>
+                        <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                          <span>{SKILL_TREES[selectedPath].title} Skill Tree{activeJob ? ` (${activeJob.title} at ${activeJob.company})` : ''}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-100 font-mono">
+                        PATH ACTIVE
+                      </span>
+                    </h2>
                   </div>
                 </div>
+              </div>
+
+              {/* Path description */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-600 leading-relaxed font-sans">
+                <strong>Current Track:</strong> {SKILL_TREES[selectedPath].description}
+              </div>
+
+              {/* Skill Tree Graph Box */}
+              {/* Skill Tree Graph Box */}
+              {(() => {
+                const nodes = SKILL_TREES[selectedPath].nodes;
+                const maxX = nodes.length > 0 ? Math.max(...nodes.map(n => n.x)) : 800;
+                const maxY = nodes.length > 0 ? Math.max(...nodes.map(n => n.y)) : 600;
+                const canvasWidth = Math.max(maxX + 150, 800);
+                const canvasHeight = Math.max(maxY + 150, 600);
+
+                const padding = 60;
+                const scaleX = (viewportSize.width - padding) / canvasWidth;
+                const scaleY = (viewportSize.height - padding) / canvasHeight;
+                const idealScale = Math.min(scaleX, scaleY, 0.85);
+                const minScale = Math.min(idealScale * 0.5, 0.1);
+
+                return (
+                  <div className="relative border border-slate-150 rounded-2xl bg-slate-950 overflow-hidden shadow-inner select-none h-[600px]" id="path-detail-tree-canvas">
+                    <style>{`
+                      @keyframes flow-particles-path {
+                        0% { stroke-dashoffset: 24; }
+                        100% { stroke-dashoffset: 0; }
+                      }
+                      .connector-flow-path {
+                        stroke-dasharray: 6, 4;
+                        animation: flow-particles-path 1.5s linear infinite;
+                      }
+                    `}</style>
+                    <TransformWrapper
+                      key={`${selectedPath}-${idealScale}`}
+                      initialScale={idealScale}
+                      minScale={minScale}
+                      maxScale={2}
+                      centerOnInit={true}
+                      wheel={{ step: 0.1 }}
+                    >
+                      {({ zoomIn, zoomOut, resetTransform }) => (
+                        <>
+                          {/* Floating controls toolbar */}
+                          <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-slate-900/90 backdrop-blur border border-slate-800 p-1.5 rounded-xl shadow-lg">
+                            <button
+                              type="button"
+                              onClick={() => zoomIn()}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white hover:text-indigo-400 transition-all font-bold text-sm cursor-pointer select-none"
+                              title="Zoom In"
+                            >
+                              +
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => zoomOut()}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white hover:text-indigo-400 transition-all font-bold text-sm cursor-pointer select-none"
+                              title="Zoom Out"
+                            >
+                              −
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => resetTransform()}
+                              className="px-2.5 h-7 flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all font-extrabold text-[10px] uppercase tracking-wider cursor-pointer select-none"
+                              title="Fit to Window"
+                            >
+                              Fit
+                            </button>
+                          </div>
+
+                          <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}>
+                            <div className="relative" style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }}>
+                              {/* Background grid canvas effect */}
+                              <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ 
+                                backgroundImage: 'radial-gradient(circle, #818cf8 1px, transparent 1px)', 
+                                backgroundSize: '16px 16px' 
+                              }} />
+
+                              {/* SVG lines layer */}
+                              <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                                <defs>
+                                  <linearGradient id="glow-grad-path" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#10b981" />
+                                    <stop offset="100%" stopColor="#6366f1" />
+                                  </linearGradient>
+                                </defs>
+
+                                {(() => {
+                                  const connections = getPathConnections(selectedPath);
+                                  const depthsMap = getNodeDepths(nodes);
+                                  const activeJob = getActiveJobForPath();
+                                  const allTargetSkills = activeJob ? activeJob.skillsNeeded : [];
+                                  const activeTargetSkills = getSkillsWithAncestors(allTargetSkills, nodes);
+
+                                  return connections.map((conn, idx) => {
+                                    const fromNode = nodes.find(n => n.name === conn.from);
+                                    const toNode = nodes.find(n => n.name === conn.to);
+
+                                    if (!fromNode || !toNode) return null;
+
+                                    const startX = fromNode.x;
+                                    const startY = fromNode.y;
+                                    const endX = toNode.x;
+                                    const endY = toNode.y;
+
+                                    const d = `M ${startX} ${startY} C ${(startX + endX) / 2} ${startY}, ${(startX + endX) / 2} ${endY}, ${endX} ${endY}`;
+
+                                    const fromUnlocked = candidate.skills.includes(fromNode.name);
+                                    const toUnlocked = candidate.skills.includes(toNode.name);
+                                    const isTargetActive = activeTargetSkills.includes(conn.from) && activeTargetSkills.includes(conn.to);
+
+                                    const fromDepth = depthsMap[conn.from] ?? 0;
+                                    const pathDelay = fromDepth * 0.4;
+                                    const overlayDelay = fromDepth * 0.4 + 1.4;
+
+                                    return (
+                                      <g key={idx}>
+                                        {/* Base guide line */}
+                                        <path 
+                                          d={d}
+                                          fill="none"
+                                          stroke="#1e293b"
+                                          strokeWidth={1.5}
+                                        />
+
+                                        {/* Growing Trunk/Connection */}
+                                        {(fromUnlocked && toUnlocked) && (
+                                          <motion.path
+                                            d={d}
+                                            fill="none"
+                                            stroke={
+                                              isTargetActive ? '#d946ef' : '#10b981'
+                                            }
+                                            strokeWidth={isTargetActive ? 3.0 : 2.5}
+                                            initial={{ pathLength: 0 }}
+                                            animate={{ pathLength: 1 }}
+                                            transition={{ duration: 1.5, ease: "easeInOut", delay: pathDelay }}
+                                          />
+                                        )}
+
+                                        {/* Flowing energy particles overlay */}
+                                        {fromUnlocked && toUnlocked && (
+                                          <motion.path
+                                            d={d}
+                                            fill="none"
+                                            stroke="#a7f3d0"
+                                            strokeWidth={1.2}
+                                            className="connector-flow-path"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 0.8 }}
+                                            transition={{ delay: overlayDelay, duration: 0.4 }}
+                                          />
+                                        )}
+                                      </g>
+                                    );
+                                  });
+                                })()}
+                              </svg>
+
+                              {/* Nodes layer */}
+                              <div className="absolute inset-0 overflow-visible">
+                                <div className="relative w-full h-full">
+                                  {nodes.map((node, nodeIdx) => {
+                                    const isUnlockedNode = candidate.skills.includes(node.name);
+                                    const prereqMet = isPrereqMet(node);
+                                    const mastery = getSkillLevel(node.name);
+                                    const activeJob = getActiveJobForPath();
+                                    const isTargetSkill = activeJob ? activeJob.skillsNeeded.includes(node.name) : false;
+
+                                    const wrapperStyle = {
+                                      position: 'absolute' as const,
+                                      left: `${node.x}px`,
+                                      top: `${node.y}px`,
+                                      transform: 'translate(-50%, -50%)',
+                                      zIndex: hoveredSkill === node.name ? 50 : 20,
+                                      width: '56px',  // w-14 is 56px
+                                      height: '56px'  // h-14 is 56px
+                                    };
+
+                                    let nodeClass = '';
+                                    if (isUnlockedNode) {
+                                      // "Lits up" in level color if completed
+                                      if (mastery === 'Pro') {
+                                        nodeClass = 'bg-emerald-950/40 border-2 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.35)]';
+                                      } else if (mastery === 'Intermediate') {
+                                        nodeClass = 'bg-indigo-950/40 border-2 border-indigo-500 text-indigo-350 shadow-[0_0_15px_rgba(99,102,241,0.35)]';
+                                      } else {
+                                        nodeClass = 'bg-cyan-950/40 border-2 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.25)]';
+                                      }
+                                      
+                                    } else {
+                                      // "Does NOT lit up" - remains dim, dark, gray background, border, text
+                                      nodeClass = 'bg-slate-950/95 border border-slate-900 text-slate-750 opacity-25 cursor-pointer hover:opacity-50 hover:border-slate-800';
+                                    }
+
+                                    return (
+                                      <div key={node.name} style={wrapperStyle}>
+                                        <motion.div 
+                                          initial={{ scale: 0, opacity: 0 }}
+                                          animate={{ scale: 1, opacity: 1 }}
+                                          transition={{ type: 'spring', stiffness: 400, damping: 25, delay: 0.15 + nodeIdx * 0.06 }}
+                                          onMouseEnter={() => setHoveredSkill(node.name)}
+                                          onMouseLeave={() => setHoveredSkill(null)}
+                                          onClick={() => setHoveredSkill(node.name)}
+                                          className={`w-full h-full rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative group select-none ${nodeClass}`}
+                                        >
+                                          {/* Grayscale and opacity filter on icon if locked */}
+                                          <div className={isUnlockedNode ? "" : "filter grayscale opacity-30 contrast-75 brightness-75 transition-all duration-300"}>
+                                            {renderSkillIcon(node.name)}
+                                          </div>
+
+                                          {/* Center Lock icon overlay for locked nodes */}
+                                          {!isUnlockedNode && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/35 rounded-2xl shadow-inner">
+                                              <Lock className="w-4.5 h-4.5 text-slate-500/80 filter drop-shadow" />
+                                            </div>
+                                          )}
+
+                                          <div className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-[10px] font-bold tracking-tight font-sans transition-colors ${
+                                            isUnlockedNode ? 'text-slate-400 group-hover:text-white' : 'text-slate-600'
+                                          }`}>
+                                            {node.name}
+                                          </div>
+
+                                          {/* Hover card details card tooltip */}
+                                          <AnimatePresence>
+                                            {hoveredSkill === node.name && (
+                                              <motion.div 
+                                                initial={{ opacity: 0, scale: 0.85, y: 5 }}
+                                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                exit={{ opacity: 0, scale: 0.85, y: 5 }}
+                                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                                className="absolute bg-slate-900/95 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-2xl text-left text-xs z-50 text-white space-y-3 pointer-events-auto"
+                                                style={{ 
+                                                  width: '260px', 
+                                                  bottom: node.y < 120 ? 'auto' : '65px',
+                                                  top: node.y < 120 ? '65px' : 'auto',
+                                                  left: '50%', 
+                                                  transform: 'translateX(-50%)' 
+                                                }}
+                                              >
+                                                <div className="flex items-start justify-between">
+                                                  <div>
+                                                    <h4 className="font-extrabold text-sm tracking-tight text-white">{node.name}</h4>
+                                                    <span className="text-[10px] font-semibold text-slate-400 font-mono">Tier {node.tier} • {node.prerequisites.length === 0 ? 'Core competency' : 'Specialized'}</span>
+                                                  </div>
+                                                  <span className={`px-2 py-0.5 rounded text-[9px] font-black font-mono border ${
+                                                    mastery === 'Pro' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                                                    mastery === 'Intermediate' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' :
+                                                    mastery === 'Beginner' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' :
+                                                    'bg-slate-950 text-slate-500 border-slate-800'
+                                                  }`}>
+                                                    {mastery.toUpperCase()}
+                                                  </span>
+                                                </div>
+
+                                                <p className="text-slate-355 text-[11px] leading-relaxed font-sans">{node.description}</p>
+
+                                                {node.prerequisites.length > 0 && (
+                                                  <div className="text-[10px] text-slate-400 font-mono">
+                                                    <strong>Requires:</strong> {node.prerequisites.join(', ')}
+                                                  </div>
+                                                )}
+
+                                                <div className="pt-2 border-t border-slate-800 flex flex-col gap-1.5">
+                                                  {isUnlockedNode ? (
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        startAssessment(node.name);
+                                                      }}
+                                                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 rounded-lg text-[10px] text-center transition-all shadow-sm"
+                                                    >
+                                                      {mastery === 'Pro' ? 'Verify Level Again' : 'Challenge AI Sandbox (Level Up)'}
+                                                    </button>
+                                                  ) : prereqMet ? (
+                                                    <div className="space-y-1.5">
+                                                      {node.courseId ? (
+                                                        (() => {
+                                                          const relatedCourse = courses.find(c => c.id === node.courseId);
+                                                          if (relatedCourse) {
+                                                            return (
+                                                              <button
+                                                                onClick={(e) => {
+                                                                  e.stopPropagation();
+                                                                  setActiveTab('learning');
+                                                                  handleStartCourse(relatedCourse);
+                                                                }}
+                                                                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 rounded-lg text-[10px] text-center transition-all"
+                                                              >
+                                                                Enroll: {relatedCourse.title} 🎓
+                                                              </button>
+                                                            );
+                                                          }
+                                                          return null;
+                                                        })()
+                                                      ) : (
+                                                        <button
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            startAssessment(node.name);
+                                                          }}
+                                                          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 rounded-lg text-[10px] text-center transition-all"
+                                                        >
+                                                          Run AI Assessment Sandbox
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  ) : (
+                                                    <div className="text-[10px] text-rose-400 font-semibold font-mono text-center bg-rose-500/10 p-1.5 rounded border border-rose-500/20">
+                                                      🔒 Previous nodes locked
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </motion.div>
+                                            )}
+                                          </AnimatePresence>
+                                        </motion.div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          </TransformComponent>
+                        </>
+                      )}
+                    </TransformWrapper>
+                  </div>
+                );
+              })()}
+                </motion.div>
               );
             })()
           )}
-
-          {/* Core Panel Content */}
-          <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 space-y-6 shadow-sm">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center border-b border-slate-100 pb-5 gap-4">
-              <div>
-                <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  <span>Interactive Skill Tree Roadmaps</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-100 font-mono">
-                    GAME MODE
-                  </span>
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">Select a specialization path to view the competency tree. Verify skills to rise from Beginner to Pro.</p>
-              </div>
-
-              {/* Specialization Switcher */}
-              <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl">
-                {Object.keys(SKILL_TREES).map(key => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setSelectedPath(key as any);
-                      setHoveredSkill(null);
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      selectedPath === key
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    {SKILL_TREES[key].title}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Path description */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-600 leading-relaxed font-sans">
-              <strong>Specialization:</strong> {SKILL_TREES[selectedPath].description}
-            </div>
-
-            {/* Interactive Graph Box */}
-            <div className="relative border border-slate-150 rounded-2xl bg-slate-950 p-4 overflow-hidden shadow-inner select-none" style={{ height: '380px' }}>
-              {/* Background grid canvas effect */}
-              <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ 
-                backgroundImage: 'radial-gradient(circle, #818cf8 1px, transparent 1px)', 
-                backgroundSize: '16px 16px' 
-              }} />
-
-              {/* The SVG lines rendering layer */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ minWidth: '760px' }}>
-                <defs>
-                  <linearGradient id="glow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#10b981" />
-                    <stop offset="100%" stopColor="#6366f1" />
-                  </linearGradient>
-                </defs>
-
-                {(() => {
-                  const nodes = SKILL_TREES[selectedPath].nodes;
-                  const connections = getPathConnections(selectedPath);
-
-                  return connections.map((conn, idx) => {
-                    const fromNode = nodes.find(n => n.name === conn.from);
-                    const toNode = nodes.find(n => n.name === conn.to);
-
-                    if (!fromNode || !toNode) return null;
-
-                    const startX = fromNode.x;
-                    const startY = fromNode.y;
-                    const endX = toNode.x;
-                    const endY = toNode.y;
-
-                    // Draw a smooth bezier curve connector
-                    const d = `M ${startX} ${startY} C ${(startX + endX) / 2} ${startY}, ${(startX + endX) / 2} ${endY}, ${endX} ${endY}`;
-
-                    // Determine stroke status
-                    const fromUnlocked = candidate.skills.includes(fromNode.name);
-                    const toUnlocked = candidate.skills.includes(toNode.name);
-                    const isTargetActive = candidate.targetJobId && 
-                      (() => {
-                        const targetJobObj = jobs.find(j => j.id === candidate.targetJobId);
-                        return targetJobObj?.skillsNeeded.includes(toNode.name);
-                      })();
-
-                    let strokeColor = '#334155'; // Slate 700 for locked
-                    let strokeDash = undefined;
-                    let strokeWidth = 1.5;
-                    let filter = undefined;
-
-                    if (fromUnlocked && toUnlocked) {
-                      strokeColor = 'url(#glow-grad)';
-                      strokeWidth = 2.5;
-                    } else if (fromUnlocked) {
-                      strokeColor = '#6366f1'; // Indigo-500 for available path
-                      strokeDash = '4,4';
-                      strokeWidth = 2;
-                    }
-
-                    if (isTargetActive) {
-                      strokeColor = '#d946ef'; // Fuchsia-500 highlighting target path
-                      strokeWidth = 3;
-                    }
-
-                    return (
-                      <path 
-                        key={idx}
-                        d={d}
-                        fill="none"
-                        stroke={strokeColor}
-                        strokeWidth={strokeWidth}
-                        strokeDasharray={strokeDash}
-                        className={fromUnlocked && toUnlocked ? 'animate-pulse' : undefined}
-                      />
-                    );
-                  });
-                })()}
-              </svg>
-
-              {/* The interactive node layout layer */}
-              <div className="absolute inset-0 overflow-x-auto overflow-y-hidden" style={{ minWidth: '760px' }}>
-                <div className="relative w-full h-full">
-                  {SKILL_TREES[selectedPath].nodes.map(node => {
-                    const isUnlockedNode = candidate.skills.includes(node.name);
-                    const prereqMet = isPrereqMet(node);
-                    const mastery = getSkillLevel(node.name);
-                    
-                    const isTargetSkill = candidate.targetJobId && 
-                      (() => {
-                        const targetJobObj = jobs.find(j => j.id === candidate.targetJobId);
-                        return targetJobObj?.skillsNeeded.includes(node.name);
-                      })();
-
-                    // Coordinates
-                    const style = {
-                      position: 'absolute' as const,
-                      left: `${node.x}px`,
-                      top: `${node.y}px`,
-                      transform: 'translate(-50%, -50%)',
-                      zIndex: 20
-                    };
-
-                    // CSS color styles
-                    let nodeClass = '';
-                    if (isUnlockedNode) {
-                      if (mastery === 'Pro') {
-                        nodeClass = 'bg-emerald-950 border-2 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-900/30';
-                      } else if (mastery === 'Intermediate') {
-                        nodeClass = 'bg-indigo-950 border-2 border-indigo-500 text-indigo-300 shadow-md shadow-indigo-900/20';
-                      } else {
-                        nodeClass = 'bg-slate-900 border-2 border-indigo-400 text-slate-300';
-                      }
-                    } else if (prereqMet) {
-                      nodeClass = 'bg-slate-900 border-2 border-dashed border-slate-600 text-slate-400 hover:border-indigo-400 hover:text-indigo-300 cursor-pointer animate-pulse';
-                    } else {
-                      nodeClass = 'bg-slate-950 border-2 border-slate-800 text-slate-700 opacity-60 cursor-not-allowed';
-                    }
-
-                    if (isTargetSkill) {
-                      nodeClass += ' ring-4 ring-pink-500/40 border-pink-500';
-                    }
-
-                    return (
-                      <div 
-                        key={node.name} 
-                        style={style}
-                        onMouseEnter={() => setHoveredSkill(node.name)}
-                        onMouseLeave={() => setHoveredSkill(null)}
-                        onClick={() => {
-                          if (prereqMet || isUnlockedNode) {
-                            setHoveredSkill(node.name);
-                          }
-                        }}
-                        className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative group select-none ${nodeClass}`}
-                      >
-                        {/* Custom Drawing Inside Node */}
-                        {renderSkillIcon(node.name)}
-
-                        {/* Mastery level index badge on the corner */}
-                        {isUnlockedNode ? (
-                          <span className={`absolute -top-1.5 -right-1.5 text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border font-mono shadow-sm ${
-                            mastery === 'Pro' ? 'bg-emerald-500 text-white border-emerald-400' :
-                            mastery === 'Intermediate' ? 'bg-indigo-600 text-white border-indigo-400' :
-                            'bg-slate-700 text-slate-200 border-slate-600'
-                          }`}>
-                            {mastery[0]}
-                          </span>
-                        ) : (
-                          <span className="absolute -top-1.5 -right-1.5 text-[8px] bg-slate-800 text-slate-500 border border-slate-700 w-5 h-5 rounded-full flex items-center justify-center">
-                            🔒
-                          </span>
-                        )}
-
-                        {/* Title text below the node */}
-                        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-[10px] font-bold tracking-tight text-slate-400 font-sans group-hover:text-white transition-colors">
-                          {node.name}
-                        </div>
-
-                        {/* Floating Tooltip Panel (Glassmorphic) */}
-                        {hoveredSkill === node.name && (
-                          <div 
-                            className="absolute bg-slate-900/95 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-2xl text-left text-xs z-50 text-white space-y-3 pointer-events-auto"
-                            style={{ 
-                              width: '260px', 
-                              bottom: node.y < 120 ? 'auto' : '65px',
-                              top: node.y < 120 ? '65px' : 'auto',
-                              left: '1/2', 
-                              transform: 'translateX(-50%)' 
-                            }}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h4 className="font-extrabold text-sm tracking-tight text-white">{node.name}</h4>
-                                <span className="text-[10px] font-semibold text-slate-400 font-mono">Tier {node.tier} • {node.prerequisites.length === 0 ? 'Core competency' : 'Specialized'}</span>
-                              </div>
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-black font-mono border ${
-                                mastery === 'Pro' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                                mastery === 'Intermediate' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' :
-                                mastery === 'Beginner' ? 'bg-slate-800 text-slate-300 border-slate-700' :
-                                'bg-slate-950 text-slate-500 border-slate-800'
-                              }`}>
-                                {mastery.toUpperCase()}
-                              </span>
-                            </div>
-
-                            <p className="text-slate-350 text-[11px] leading-relaxed font-sans">{node.description}</p>
-
-                            {node.prerequisites.length > 0 && (
-                              <div className="text-[10px] text-slate-400 font-mono">
-                                <strong>Requires:</strong> {node.prerequisites.join(', ')}
-                              </div>
-                            )}
-
-                            {/* Verification Path CTAs inside tooltip */}
-                            <div className="pt-2 border-t border-slate-800 flex flex-col gap-1.5">
-                              {isUnlockedNode ? (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startAssessment(node.name);
-                                  }}
-                                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 rounded-lg text-[10px] text-center transition-all shadow-sm"
-                                >
-                                  {mastery === 'Pro' ? 'Verify Level Again' : 'Challenge AI Sandbox (Level Up)'}
-                                </button>
-                              ) : prereqMet ? (
-                                <div className="space-y-1.5">
-                                  {node.courseId ? (
-                                    (() => {
-                                      const relatedCourse = courses.find(c => c.id === node.courseId);
-                                      if (relatedCourse) {
-                                        return (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setActiveTab('learning');
-                                              handleStartCourse(relatedCourse);
-                                            }}
-                                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 rounded-lg text-[10px] text-center transition-all"
-                                          >
-                                            Enroll: {relatedCourse.title} 🎓
-                                          </button>
-                                        );
-                                      }
-                                      return null;
-                                    })()
-                                  ) : (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        startAssessment(node.name);
-                                      }}
-                                      className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 rounded-lg text-[10px] text-center transition-all"
-                                    >
-                                      Run AI Assessment Sandbox
-                                    </button>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="text-[10px] text-rose-400 font-semibold font-mono text-center bg-rose-500/10 p-1.5 rounded border border-rose-500/20">
-                                  🔒 Previous nodes locked
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
+          </AnimatePresence>
         </div>
       )}
 
@@ -1471,7 +2231,7 @@ export default function CandidateWorkspace({
       {activeTab === 'profile' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fadeIn" id="tab-panels-profile">
           {/* Left Block: The Profile Resume Output */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-12 space-y-6">
             {/* Main resume card */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8 space-y-8" id="verified-compiled-cv">
               {/* Profile Header */}
@@ -1513,52 +2273,486 @@ export default function CandidateWorkspace({
 
               {/* Verified Skills Ledger (The Crown Jewel) */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
-                    <ShieldCheck className="w-4.5 h-4.5 text-emerald-500" />
-                    <span>Verified Professional Competencies</span>
-                  </h3>
-                  <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold font-mono">
-                    TRUSTED CRYPTO CONSENSUS
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                    <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                      Verified Professional Competencies
+                    </h3>
+                    <span className="text-[9px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-bold font-mono">
+                      CRYPTO CONSENSUS
+                    </span>
+                  </div>
+
+                  {/* View Toggles & Show Progress Toggle */}
+                  <div className="flex items-center gap-4 self-end sm:self-auto">
+                    {profileView === 'tree' && (
+                      <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-600 select-none">
+                        <input
+                          id="current-progress-toggle"
+                          type="checkbox"
+                          checked={showCurrentProgress}
+                          onChange={(e) => setShowCurrentProgress(e.target.checked)}
+                          className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                        />
+                        <span>Current Progress</span>
+                      </label>
+                    )}
+
+                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                      <button
+                        id="list-view-btn"
+                        onClick={() => setProfileView('list')}
+                        className={`p-1.5 rounded-md text-slate-500 hover:text-slate-950 transition-all ${
+                          profileView === 'list' ? 'bg-white shadow-sm text-slate-950' : ''
+                        }`}
+                        title="List View"
+                      >
+                        <List className="w-4 h-4" />
+                      </button>
+                      <button
+                        id="tree-view-btn"
+                        onClick={() => setProfileView('tree')}
+                        className={`p-1.5 rounded-md text-slate-500 hover:text-slate-950 transition-all ${
+                          profileView === 'tree' ? 'bg-white shadow-sm text-slate-950' : ''
+                        }`}
+                        title="Skill Tree View"
+                      >
+                        <GitBranch className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                {candidate.skills.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" id="verified-skills-list-cv">
-                    {candidate.skills.map(skill => {
-                      // Trace which course granted this skill to display link
-                      const correspondingCourse = courses.find(c => c.skillsGranted.includes(skill));
-                      return (
-                        <div 
-                          key={skill} 
-                          className="bg-emerald-50/40 border border-emerald-100/60 rounded-xl p-3 flex items-center justify-between"
-                        >
-                          <div className="flex items-center space-x-2.5">
-                            <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                              <Check className="w-3.5 h-3.5" />
+                {profileView === 'list' ? (
+                  candidate.skills.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" id="verified-skills-list-cv">
+                      {candidate.skills.map(skill => {
+                        const correspondingCourse = courses.find(c => c.skillsGranted.includes(skill));
+                        const mastery = candidate.skillLevels?.[skill] || 'Intermediate';
+                        return (
+                          <div 
+                            key={skill} 
+                            className="bg-white border border-slate-150 rounded-xl p-3 flex items-center justify-between shadow-sm hover:shadow transition-all"
+                          >
+                            <div className="flex items-center space-x-2.5">
+                              <div className={`w-5.5 h-5.5 rounded-full flex items-center justify-center font-mono text-[9px] font-black text-white ${
+                                mastery === 'Pro' ? 'bg-emerald-500' :
+                                mastery === 'Intermediate' ? 'bg-indigo-600' :
+                                'bg-cyan-500 text-slate-900'
+                              }`}>
+                                {mastery[0]}
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-slate-900">{skill}</p>
+                                {correspondingCourse ? (
+                                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">Via: {correspondingCourse.title}</p>
+                                ) : (
+                                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">Project-Acquired</p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs font-bold text-slate-900">{skill}</p>
-                              {correspondingCourse && (
-                                <p className="text-[10px] text-slate-500 font-mono mt-0.5">Via: {correspondingCourse.title}</p>
-                              )}
-                            </div>
+                            <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                              Verified Fit
+                            </span>
                           </div>
-                          <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
-                            Verified Fit
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-250">
+                      <GraduationCap className="w-8 h-8 text-indigo-400 mx-auto opacity-75 mb-2" />
+                      <p className="text-xs text-slate-500 font-medium">No verified skills generated yet.</p>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
+                        Enroll in the Course Academy and complete dynamic module quizzes to gain auto-validated certifications.
+                      </p>
+                    </div>
+                  )
                 ) : (
-                  <div className="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-250">
-                    <GraduationCap className="w-8 h-8 text-indigo-400 mx-auto opacity-75 mb-2" />
-                    <p className="text-xs text-slate-500 font-medium">No verified skills generated yet.</p>
-                    <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
-                      Enroll in the Course Academy and complete dynamic module quizzes to gain auto-validated certifications.
-                    </p>
-                  </div>
+                  (() => {
+                    const learningSkills = Array.from(new Set(
+                      courses
+                        .filter(c => c.enrolled && !c.completed)
+                        .flatMap(c => c.skillsGranted)
+                        .filter(s => !candidate.skills.includes(s))
+                    ));
+
+                    let customSkillCount = 0;
+                    const dynamicCoords = { ...PROFILE_SKILL_COORDINATES };
+                    candidate.skills.forEach(s => {
+                      if (!dynamicCoords[s]) {
+                        dynamicCoords[s] = {
+                          x: 780,
+                          y: 70 + (customSkillCount % 8) * 80,
+                          category: 'Custom',
+                          description: 'Self-directed or project-acquired skill competency.'
+                        };
+                        customSkillCount++;
+                      }
+                    });
+
+                    const visibleNodesList = Object.keys(dynamicCoords).filter(name => {
+                      if (candidate.skills.includes(name)) return true;
+                      if (showCurrentProgress && learningSkills.includes(name)) return true;
+                      return false;
+                    });
+
+                    const visibleNodes = visibleNodesList.map(name => ({
+                      name,
+                      ...dynamicCoords[name]
+                    }));
+
+                    const maxX = visibleNodes.length > 0 ? Math.max(...visibleNodes.map(n => n.x)) : 800;
+                    const maxY = visibleNodes.length > 0 ? Math.max(...visibleNodes.map(n => n.y)) : 600;
+                    const canvasWidth = Math.max(maxX + 150, 800);
+                    const canvasHeight = Math.max(maxY + 150, 600);
+
+                    const padding = 60;
+                    const scaleX = (viewportSize.width - padding) / canvasWidth;
+                    const scaleY = (viewportSize.height - padding) / canvasHeight;
+                    const idealScale = Math.min(scaleX, scaleY, 0.85);
+                    const minScale = Math.min(idealScale * 0.5, 0.1);
+
+                    return (
+                      <div className="relative border border-slate-150 rounded-2xl bg-slate-950 overflow-hidden shadow-inner select-none h-[500px]" id="profile-skill-tree-canvas">
+                        <style>{`
+                          @keyframes flow-particles-profile {
+                            0% { stroke-dashoffset: 24; }
+                            100% { stroke-dashoffset: 0; }
+                          }
+                          .connector-flow-profile {
+                            stroke-dasharray: 6, 4;
+                            animation: flow-particles-profile 1.5s linear infinite;
+                          }
+                          @keyframes pulse-learning-profile {
+                            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.2)); opacity: 0.85; }
+                            50% { transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5)); opacity: 1; }
+                          }
+                          .node-learning-pulse-profile {
+                            animation: pulse-learning-profile 2.2s ease-in-out infinite;
+                          }
+                        `}</style>
+                        <TransformWrapper
+                          key={`${showCurrentProgress}-${candidate.skills.length}-${idealScale}`}
+                          initialScale={idealScale}
+                          minScale={minScale}
+                          maxScale={2}
+                          centerOnInit={true}
+                          wheel={{ step: 0.1 }}
+                        >
+                          {({ zoomIn, zoomOut, resetTransform }) => (
+                            <>
+                              {/* Floating controls toolbar */}
+                              <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-slate-900/90 backdrop-blur border border-slate-800 p-1.5 rounded-xl shadow-lg">
+                                <button
+                                  type="button"
+                                  onClick={() => zoomIn()}
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white hover:text-indigo-400 transition-all font-bold text-sm cursor-pointer select-none"
+                                  title="Zoom In"
+                                >
+                                  +
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => zoomOut()}
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white hover:text-indigo-400 transition-all font-bold text-sm cursor-pointer select-none"
+                                  title="Zoom Out"
+                                >
+                                  −
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => resetTransform()}
+                                  className="px-2.5 h-7 flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all font-extrabold text-[10px] uppercase tracking-wider cursor-pointer select-none"
+                                  title="Fit to Window"
+                                >
+                                  Fit
+                                </button>
+                              </div>
+
+                              <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}>
+                                <div className="relative" style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }}>
+                                  {/* Background grid canvas effect */}
+                                  <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ 
+                                    backgroundImage: 'radial-gradient(circle, #818cf8 1px, transparent 1px)', 
+                                    backgroundSize: '16px 16px' 
+                                  }} />
+
+                                  {/* SVG lines layer */}
+                                  <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                                    <defs>
+                                      <linearGradient id="glow-grad-profile" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#10b981" />
+                                        <stop offset="100%" stopColor="#6366f1" />
+                                      </linearGradient>
+                                    </defs>
+
+                                    {(() => {
+                                      const connections = PROFILE_SKILL_CONNECTIONS.filter(conn => {
+                                        return visibleNodesList.includes(conn.from) && visibleNodesList.includes(conn.to);
+                                      });
+                                      const depthsMap = getProfileNodeDepths();
+                                      const followedJobs = jobs.filter(j => (candidate.followedJobIds || []).includes(j.id));
+                                      const allTargetSkills = followedJobs.flatMap(j => j.skillsNeeded);
+                                      const profileActiveTargetSkills = getProfileSkillsWithAncestors(allTargetSkills);
+
+                                      return connections.map((conn, idx) => {
+                                        const fromNode = dynamicCoords[conn.from];
+                                        const toNode = dynamicCoords[conn.to];
+
+                                        if (!fromNode || !toNode) return null;
+
+                                        const startX = fromNode.x;
+                                        const startY = fromNode.y;
+                                        const endX = toNode.x;
+                                        const endY = toNode.y;
+
+                                        const d = `M ${startX} ${startY} C ${(startX + endX) / 2} ${startY}, ${(startX + endX) / 2} ${endY}, ${endX} ${endY}`;
+
+                                        const fromUnlocked = candidate.skills.includes(conn.from);
+                                        const toUnlocked = candidate.skills.includes(conn.to);
+                                        const isTargetActive = profileActiveTargetSkills.includes(conn.from) && profileActiveTargetSkills.includes(conn.to);
+
+                                        const fromDepth = depthsMap[conn.from] ?? 0;
+                                        const pathDelay = fromDepth * 0.4;
+                                        const overlayDelay = fromDepth * 0.4 + 1.4;
+
+                                        let strokeColor = '#10b981';
+                                        const fromMastery = candidate.skillLevels?.[conn.from] || 'Intermediate';
+                                        const toMastery = candidate.skillLevels?.[conn.to] || 'Intermediate';
+                                        
+                                        if (isTargetActive) {
+                                          strokeColor = '#d946ef';
+                                        } else if (fromMastery === 'Pro' && toMastery === 'Pro') {
+                                          strokeColor = '#10b981';
+                                        } else if (fromMastery === 'Beginner' || toMastery === 'Beginner') {
+                                          strokeColor = '#06b6d4';
+                                        } else {
+                                          strokeColor = '#6366f1';
+                                        }
+
+                                        return (
+                                          <g key={idx}>
+                                            {/* Base guide line */}
+                                            <path 
+                                              d={d}
+                                              fill="none"
+                                              stroke="#1e293b"
+                                              strokeWidth={1.5}
+                                            />
+                                            
+                                            {/* Glowing growing trunk (traces on mount) */}
+                                            {fromUnlocked && toUnlocked && (
+                                              <motion.path
+                                                d={d}
+                                                fill="none"
+                                                stroke={strokeColor}
+                                                strokeWidth={isTargetActive ? 3.0 : 2.5}
+                                                initial={{ pathLength: 0 }}
+                                                animate={{ pathLength: 1 }}
+                                                transition={{ duration: 1.5, ease: "easeInOut", delay: pathDelay }}
+                                              />
+                                            )}
+
+                                            {/* Flowing energy particles overlay */}
+                                            {fromUnlocked && toUnlocked && (
+                                              <motion.path
+                                                d={d}
+                                                fill="none"
+                                                stroke="#a7f3d0"
+                                                strokeWidth={1.2}
+                                                className="connector-flow-profile"
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 0.8 }}
+                                                transition={{ delay: overlayDelay, duration: 0.4 }}
+                                              />
+                                            )}
+                                          </g>
+                                        );
+                                      });
+                                    })()}
+                                  </svg>
+
+                                  {/* Nodes layer */}
+                                  <div className="absolute inset-0 overflow-visible">
+                                    <div className="relative w-full h-full">
+                                      {visibleNodes.map((node, nodeIdx) => {
+                                        const isUnlockedNode = candidate.skills.includes(node.name);
+                                        const isLearningNode = learningSkills.includes(node.name);
+                                        
+                                        // Look up prerequisites, courseId and tier from any specialization tree
+                                        let nodeDetails = { prerequisites: [] as string[], courseId: undefined as string | undefined, tier: 1 };
+                                        for (const pathKey of Object.keys(SKILL_TREES)) {
+                                          const matchingPathNode = SKILL_TREES[pathKey].nodes.find(n => n.name === node.name);
+                                          if (matchingPathNode) {
+                                            nodeDetails = {
+                                              prerequisites: matchingPathNode.prerequisites,
+                                              courseId: matchingPathNode.courseId,
+                                              tier: matchingPathNode.tier
+                                            };
+                                            break;
+                                          }
+                                        }
+
+                                        const prereqMet = nodeDetails.prerequisites.length === 0 || nodeDetails.prerequisites.every(p => candidate.skills.includes(p));
+                                        const mastery = getSkillLevel(node.name);
+                                        const activeJob = getActiveJobForPath();
+                                        const isTargetSkill = activeJob ? activeJob.skillsNeeded.includes(node.name) : false;
+
+                                        const wrapperStyle = {
+                                          position: 'absolute' as const,
+                                          left: `${node.x}px`,
+                                          top: `${node.y}px`,
+                                          transform: 'translate(-50%, -50%)',
+                                          zIndex: profileHoveredSkill === node.name ? 50 : 20,
+                                          width: '56px',
+                                          height: '56px'
+                                        };
+
+                                        let nodeClass = '';
+                                        let animateClass = '';
+                                        if (isUnlockedNode) {
+                                          if (mastery === 'Pro') {
+                                            nodeClass = 'bg-emerald-950/40 border-2 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.35)]';
+                                          } else if (mastery === 'Intermediate') {
+                                            nodeClass = 'bg-indigo-950/40 border-2 border-indigo-500 text-indigo-350 shadow-[0_0_15px_rgba(99,102,241,0.35)]';
+                                          } else {
+                                            nodeClass = 'bg-cyan-950/40 border-2 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.25)]';
+                                          }
+                                        } else if (showCurrentProgress && isLearningNode) {
+                                          nodeClass = 'border-dashed border-2 border-amber-500 bg-amber-950/45 text-amber-355 shadow-[0_0_12px_rgba(245,158,11,0.25)]';
+                                          animateClass = ''; // static, no breathing
+                                        } else {
+                                          return null;
+                                        }
+
+                                        return (
+                                          <div key={node.name} style={wrapperStyle}>
+                                            <motion.div 
+                                              initial={{ scale: 0, opacity: 0 }}
+                                              animate={{ scale: 1, opacity: 1 }}
+                                              transition={{ type: 'spring', stiffness: 400, damping: 25, delay: 0.1 + nodeIdx * 0.05 }}
+                                              onMouseEnter={() => setProfileHoveredSkill(node.name)}
+                                              onMouseLeave={() => setProfileHoveredSkill(null)}
+                                              onClick={() => setProfileHoveredSkill(node.name)}
+                                              className={`w-full h-full rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative group select-none ${nodeClass} ${animateClass}`}
+                                            >
+                                              {renderSkillIcon(node.name)}
+
+                                              <div className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-[10px] font-bold tracking-tight font-sans transition-colors ${
+                                                isUnlockedNode ? 'text-slate-400 group-hover:text-white' : showCurrentProgress && isLearningNode ? 'text-amber-400' : 'text-slate-600'
+                                              }`}>
+                                                {node.name}
+                                              </div>
+
+                                              {/* Hover card details card tooltip */}
+                                              <AnimatePresence>
+                                                {profileHoveredSkill === node.name && (
+                                                  <motion.div 
+                                                    initial={{ opacity: 0, scale: 0.85, y: 5 }}
+                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.85, y: 5 }}
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                                    className="absolute bg-slate-900/95 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-2xl text-left text-xs z-50 text-white space-y-3 pointer-events-auto"
+                                                    style={{ 
+                                                      width: '260px', 
+                                                      bottom: node.y < 120 ? 'auto' : '65px',
+                                                      top: node.y < 120 ? '65px' : 'auto',
+                                                      left: '50%', 
+                                                      transform: 'translateX(-50%)' 
+                                                    }}
+                                                  >
+                                                    <div className="flex items-start justify-between">
+                                                      <div>
+                                                        <h4 className="font-extrabold text-sm tracking-tight text-white">{node.name}</h4>
+                                                        <span className="text-[10px] font-semibold text-slate-400 font-mono">Tier {nodeDetails.tier} • {nodeDetails.prerequisites.length === 0 ? 'Core competency' : 'Specialized'}</span>
+                                                      </div>
+                                                      <span className={`px-2 py-0.5 rounded text-[9px] font-black font-mono border ${
+                                                        mastery === 'Pro' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                                                        mastery === 'Intermediate' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' :
+                                                        mastery === 'Beginner' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' :
+                                                        isLearningNode ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                                                        'bg-slate-955 text-slate-555 border-slate-855'
+                                                      }`}>
+                                                        {isUnlockedNode ? mastery.toUpperCase() : isLearningNode ? 'LEARNING' : 'LOCKED'}
+                                                      </span>
+                                                    </div>
+
+                                                    <p className="text-slate-355 text-[11px] leading-relaxed font-sans">{node.description}</p>
+
+                                                    {nodeDetails.prerequisites.length > 0 && (
+                                                      <div className="text-[10px] text-slate-400 font-mono">
+                                                        <strong>Requires:</strong> {nodeDetails.prerequisites.join(', ')}
+                                                      </div>
+                                                    )}
+
+                                                    <div className="pt-2 border-t border-slate-800 flex flex-col gap-1.5">
+                                                      {isUnlockedNode ? (
+                                                        <button
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            startAssessment(node.name);
+                                                          }}
+                                                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-1.5 rounded-lg text-[10px] text-center transition-all shadow-sm cursor-pointer"
+                                                        >
+                                                          {mastery === 'Pro' ? 'Verify Level Again' : 'Challenge AI Sandbox (Level Up)'}
+                                                        </button>
+                                                      ) : prereqMet ? (
+                                                        <div className="space-y-1.5">
+                                                          {nodeDetails.courseId ? (
+                                                            (() => {
+                                                              const relatedCourse = courses.find(c => c.id === nodeDetails.courseId);
+                                                              if (relatedCourse) {
+                                                                return (
+                                                                  <button
+                                                                    onClick={(e) => {
+                                                                      e.stopPropagation();
+                                                                      setActiveTab('learning');
+                                                                      handleStartCourse(relatedCourse);
+                                                                    }}
+                                                                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 rounded-lg text-[10px] text-center transition-all cursor-pointer"
+                                                                  >
+                                                                    Enroll: {relatedCourse.title} 🎓
+                                                                  </button>
+                                                                );
+                                                              }
+                                                              return null;
+                                                            })()
+                                                          ) : (
+                                                            <button
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                startAssessment(node.name);
+                                                              }}
+                                                              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 rounded-lg text-[10px] text-center transition-all cursor-pointer"
+                                                            >
+                                                              Run AI Assessment Sandbox
+                                                            </button>
+                                                          )}
+                                                        </div>
+                                                      ) : (
+                                                        <div className="text-[10px] text-rose-400 font-semibold font-mono text-center bg-rose-500/10 p-1.5 rounded border border-rose-500/20">
+                                                          🔒 Previous nodes locked
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  </motion.div>
+                                                )}
+                                              </AnimatePresence>
+                                            </motion.div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    </div>
+                                  </div>
+                              </TransformComponent>
+                            </>
+                          )}
+                        </TransformWrapper>
+                      </div>
+                    );
+                  })()
                 )}
               </div>
 
@@ -1568,14 +2762,90 @@ export default function CandidateWorkspace({
                   <h3 className="text-sm font-bold text-slate-900 tracking-tight">
                     Self-Directed Engineering Projects
                   </h3>
-                  <button 
-                    onClick={() => setIsAddingProject(true)}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1"
-                    id="add-project-btn"
-                  >
-                    <Plus className="w-4 h-4" /> Add Project
-                  </button>
+                  {!isAddingProject && (
+                    <button 
+                      onClick={() => setIsAddingProject(true)}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 cursor-pointer"
+                      id="add-project-btn"
+                    >
+                      <Plus className="w-4 h-4" /> Add Project
+                    </button>
+                  )}
                 </div>
+
+                {isAddingProject && (
+                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6 space-y-4" id="project-form-container">
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Publish New Project Case Study</h3>
+                    <form onSubmit={handleAddProjectSubmit} className="space-y-3.5 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-semibold text-slate-700 mb-1">Project Name</label>
+                          <input 
+                            id="proj-title-input"
+                            type="text" 
+                            required
+                            placeholder="e.g. FlightPath - Runway Analytics"
+                            value={newProjTitle}
+                            onChange={(e) => setNewProjTitle(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-semibold text-slate-700 mb-1">Technologies/Languages Used</label>
+                          <input 
+                            id="proj-skills-input"
+                            type="text" 
+                            placeholder="React, Tailwind, Docker, rust (comma separated)"
+                            value={newProjSkills}
+                            onChange={(e) => setNewProjSkills(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-semibold text-slate-700 mb-1">Impact & Description</label>
+                          <textarea 
+                            id="proj-desc-input"
+                            required
+                            rows={3}
+                            placeholder="Explain what was constructed, quantitative speeds achieved, or challenges overcome."
+                            value={newProjDesc}
+                            onChange={(e) => setNewProjDesc(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-semibold text-slate-700 mb-1">Repository/Live URL</label>
+                          <input 
+                            id="proj-link-input"
+                            type="url" 
+                            placeholder="https://github.com/developer/flight-path"
+                            value={newProjLink}
+                            onChange={(e) => setNewProjLink(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          />
+                          <div className="flex space-x-2 pt-4">
+                            <button 
+                              id="submit-project-btn"
+                              type="submit"
+                              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg cursor-pointer"
+                            >
+                              Publish Project
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setIsAddingProject(false)}
+                              className="px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                )}
 
                 {candidate.projects.length > 0 ? (
                   <div className="space-y-4" id="projects-list-cv">
@@ -1609,118 +2879,6 @@ export default function CandidateWorkspace({
                   <p className="text-xs text-slate-400 italic">No custom web projects added yet. Recruiter visibility benefits from adding raw outputs alongside academic work.</p>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Right Block: Add project form / stats Summary */}
-          <div className="lg:col-span-4 space-y-6">
-            {/* Interactive Add Project Block */}
-            {isAddingProject ? (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4" id="project-form-container">
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Publish New Project Case Study</h3>
-                <form onSubmit={handleAddProjectSubmit} className="space-y-3.5 text-xs">
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Project Name</label>
-                    <input 
-                      id="proj-title-input"
-                      type="text" 
-                      required
-                      placeholder="e.g. FlightPath - Runway Analytics"
-                      value={newProjTitle}
-                      onChange={(e) => setNewProjTitle(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Impact & Description</label>
-                    <textarea 
-                      id="proj-desc-input"
-                      required
-                      rows={3}
-                      placeholder="Explain what was constructed, quantitative speeds achieved, or challenges overcome."
-                      value={newProjDesc}
-                      onChange={(e) => setNewProjDesc(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Technologies/Languages Used</label>
-                    <input 
-                      id="proj-skills-input"
-                      type="text" 
-                      placeholder="React, Tailwind, Docker, rust (comma separated)"
-                      value={newProjSkills}
-                      onChange={(e) => setNewProjSkills(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Repository/Live URL</label>
-                    <input 
-                      id="proj-link-input"
-                      type="url" 
-                      placeholder="https://github.com/developer/flight-path"
-                      value={newProjLink}
-                      onChange={(e) => setNewProjLink(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div className="flex space-x-2 pt-2">
-                    <button 
-                      id="submit-project-btn"
-                      type="submit"
-                      className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg"
-                    >
-                      Publish Project
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setIsAddingProject(false)}
-                      className="px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            ) : (
-              <div className="bg-slate-55 bg-indigo-50/20 border border-indigo-100/50 rounded-2xl p-6 space-y-4" id="cv-quick-tips">
-                <Sparkles className="w-6 h-6 text-indigo-500" />
-                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">How CareerOS verification works</h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Unlike legacy resumes that suffer from self-reporting bias, any skills attached to your portfolio via our syllabus can be authenticated by recruiters. Each badge carries a consensus signature linking to standard-defined coursework.
-                </p>
-                <div className="pt-2">
-                  <button 
-                    onClick={() => setIsAddingProject(true)}
-                    className="w-full bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200/60 font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1"
-                  >
-                    <Plus className="w-4 h-4" /> Add Personal Project Case
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Static Verified Credentials Showcase */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm" id="certificate-scroller">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Earned Certifications</h4>
-              {courses.filter(c => c.completed).length > 0 ? (
-                <div className="space-y-3">
-                  {courses.filter(c => c.completed).map(c => (
-                    <div key={c.id} className="p-3 border border-emerald-100 bg-emerald-50/20 rounded-xl flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Award className="w-5 h-5 text-emerald-500" />
-                        <div>
-                          <p className="text-xs font-bold text-slate-800">{c.title}</p>
-                          <p className="text-[10px] text-slate-500 font-mono">ID: {c.id.toUpperCase()}-VERIFY</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">No certificates secured. Complete the courses in the learning tab to claim active badges.</p>
-              )}
             </div>
           </div>
         </div>
@@ -1850,6 +3008,50 @@ export default function CandidateWorkspace({
                           })}
                         </div>
                       </div>
+
+                      {/* Job Skill Path Map (Simplified horizontal/chain skill tree) */}
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-2.5" id={`job-skill-path-map-${job.id}`}>
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider">
+                          <span>Opportunity Pathway Graph</span>
+                          <span className="text-indigo-600 font-semibold lowercase">Complete this path to secure 100% verified fit</span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-y-3 relative py-1">
+                          {job.skillsNeeded.map((skill, sIdx) => {
+                            const isPossessed = candidate.skills.includes(skill);
+                            return (
+                              <React.Fragment key={skill}>
+                                {sIdx > 0 && (
+                                  <div className="flex items-center mx-1.5 shrink-0">
+                                    {/* Connection line */}
+                                    <div className={`h-0.5 w-4 transition-all duration-300 ${
+                                      isPossessed && candidate.skills.includes(job.skillsNeeded[sIdx - 1])
+                                        ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50'
+                                        : 'bg-slate-200 border-dashed border-t border-slate-300'
+                                    }`} />
+                                  </div>
+                                )}
+
+                                <div 
+                                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold select-none transition-all duration-300 ${
+                                    isPossessed
+                                      ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-sm shadow-emerald-100'
+                                      : 'bg-white border-slate-200 text-slate-400 border-dashed hover:border-slate-300'
+                                  }`}
+                                  title={isPossessed ? `${skill} - Possessed` : `${skill} - Lacking`}
+                                >
+                                  <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center font-mono text-[7px] font-black text-white shrink-0 ${
+                                    isPossessed ? 'bg-emerald-500' : 'bg-slate-300'
+                                  }`}>
+                                    {isPossessed ? '✓' : '🔒'}
+                                  </div>
+                                  <span className="text-[11px]">{skill}</span>
+                                </div>
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
 
                     {/* CTAs */}
@@ -1880,28 +3082,26 @@ export default function CandidateWorkspace({
                             {matchScore === 100 ? 'Apply with 100% Verified Fit' : 'Apply For Role'}
                           </button>
                           
-                          {candidate.targetJobId === job.id ? (
+                          {(candidate.followedJobIds || []).includes(job.id) ? (
                             <button
-                              onClick={() => onUpdateTargetJob?.(undefined)}
-                              className="py-1.5 px-4 rounded-lg border border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100 font-bold text-[11px] transition-all flex items-center justify-center gap-1"
+                              id={`following-path-btn-${job.id}`}
+                              onClick={() => onUnfollowJob?.(job.id)}
+                              className="py-1.5 px-4 rounded-lg border border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100 font-bold text-[11px] transition-all flex items-center justify-center gap-1 cursor-pointer"
                             >
                               Following Path 🎯
                             </button>
                           ) : (
                             <button
+                              id={`follow-path-btn-${job.id}`}
                               onClick={() => {
-                                onUpdateTargetJob?.(job.id);
-                                if (job.skillsNeeded.includes('Gemini API') || job.skillsNeeded.includes('AI Engineering')) {
-                                  setSelectedPath('AI Specialist');
-                                } else if (job.skillsNeeded.includes('Next.js') || job.skillsNeeded.includes('Server Actions')) {
-                                  setSelectedPath('Full-Stack');
-                                } else if (job.skillsNeeded.includes('Figma') || job.skillsNeeded.includes('Design Systems')) {
-                                  setSelectedPath('Product Designer');
-                                } else if (job.skillsNeeded.includes('PLG') || job.skillsNeeded.includes('User Retention')) {
-                                  setSelectedPath('Product Manager');
-                                }
+                                onFollowJob?.(job.id);
+                                const spec = getJobSpecialization(job);
+                                setSelectedPath(spec as any);
+                                setMyPathView('hub');
+                                setActiveTab('roadmaps');
+                                setActiveTargetJobId(job.id);
                               }}
-                              className="py-1.5 px-4 rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 font-bold text-[11px] transition-all flex items-center justify-center gap-1"
+                              className="py-1.5 px-4 rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 font-bold text-[11px] transition-all flex items-center justify-center gap-1 cursor-pointer"
                             >
                               Follow Skill Path 🎯
                             </button>

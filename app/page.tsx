@@ -132,11 +132,36 @@ export default function Home() {
       if (storedCourses) setCourses(JSON.parse(storedCourses));
       else setCourses(INITIAL_COURSES);
 
-      if (storedCandidates) setCandidates(JSON.parse(storedCandidates));
-      else setCandidates(INITIAL_CANDIDATES);
+      if (storedCandidates) {
+        const parsed = JSON.parse(storedCandidates);
+        const updated = parsed.map((c: Candidate) => {
+          if (c.isCurrentUser && (!c.skills || c.skills.length < 10)) {
+            const defaultUser = INITIAL_CANDIDATES.find(u => u.isCurrentUser) || INITIAL_CANDIDATES[0];
+            return {
+              ...c,
+              skills: defaultUser.skills,
+              skillLevels: defaultUser.skillLevels
+            };
+          }
+          return c;
+        });
+        setCandidates(updated);
+      } else {
+        setCandidates(INITIAL_CANDIDATES);
+      }
 
-      if (storedJobs) setJobs(JSON.parse(storedJobs));
-      else setJobs(INITIAL_JOBS);
+      if (storedJobs) {
+        const parsedJobs = JSON.parse(storedJobs);
+        const isOldData = parsedJobs.some((j: any) => j.id === 'job-1' && j.skillsNeeded.length < 10);
+        if (isOldData) {
+          localStorage.setItem('career_os_jobs', JSON.stringify(INITIAL_JOBS));
+          setJobs(INITIAL_JOBS);
+        } else {
+          setJobs(parsedJobs);
+        }
+      } else {
+        setJobs(INITIAL_JOBS);
+      }
 
       if (storedRequests) setCourseRequests(JSON.parse(storedRequests));
       else setCourseRequests(INITIAL_REQUESTS);
@@ -246,6 +271,32 @@ export default function Home() {
         return {
           ...cand,
           targetJobId: jobId
+        };
+      }
+      return cand;
+    }));
+  };
+
+  const handleFollowJob = (jobId: string) => {
+    setCandidates(prevCands => prevCands.map(cand => {
+      if (cand.isCurrentUser) {
+        const current = cand.followedJobIds || [];
+        if (current.includes(jobId)) return cand;
+        return {
+          ...cand,
+          followedJobIds: [...current, jobId]
+        };
+      }
+      return cand;
+    }));
+  };
+
+  const handleUnfollowJob = (jobId: string) => {
+    setCandidates(prevCands => prevCands.map(cand => {
+      if (cand.isCurrentUser) {
+        return {
+          ...cand,
+          followedJobIds: (cand.followedJobIds || []).filter(id => id !== jobId)
         };
       }
       return cand;
@@ -601,6 +652,8 @@ Key Requirements:
             appliedJobIds={appliedJobIds}
             onUpdateTargetJob={handleUpdateTargetJob}
             onUpdateSkillLevel={handleUpdateSkillLevel}
+            onFollowJob={handleFollowJob}
+            onUnfollowJob={handleUnfollowJob}
           />
         )}
 
