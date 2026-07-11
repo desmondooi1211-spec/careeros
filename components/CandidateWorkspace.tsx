@@ -1041,18 +1041,20 @@ export default function CandidateWorkspace({
 
   return (
     <div className="space-y-8" id="candidate-workspace">
-      {/* Workspace Sub-Header Navigation */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4" id="candidate-subnav">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Welcome back, {candidate.name}</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-              <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Verified Candidate
-            </span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Develop verified proof-of-ability and get matched immediately with hiring-ready pipelines.</p>
+      {/* Workspace Sub-Header Navigation - Only shown on main Learning Academy tab */}
+      {activeTab === 'learning' && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4" id="candidate-subnav">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <span>Welcome back, {candidate.name}</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Verified Candidate
+              </span>
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">Develop verified proof-of-ability and get matched immediately with hiring-ready pipelines.</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ACTIVE LEARNING MODAL / SUB-SCREEN (Immersive split-view) */}
       {selectedCourse && (
@@ -1252,55 +1254,55 @@ export default function CandidateWorkspace({
                   <motion.div
                     key={followedId}
                     layout
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, height: 0, marginBottom: 0, overflow: 'hidden' }}
-                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1], delay: fIdx * 0.08 }}
-                    className="bg-gradient-to-r from-violet-900 via-indigo-900 to-slate-900 rounded-3xl p-6 text-white border border-indigo-500/30 shadow-lg relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="bg-slate-50 rounded-2xl p-6 text-slate-900 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
                   >
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 text-slate-200 pointer-events-none">
                       <Award className="w-48 h-48" />
                     </div>
 
                     {/* Unfollow Button */}
                     <button
                       onClick={() => onUnfollowJob?.(followedId)}
-                      className="absolute top-3 right-3 z-20 w-7 h-7 rounded-full bg-slate-800/60 hover:bg-rose-600/80 border border-slate-700 hover:border-rose-500 flex items-center justify-center transition-all duration-200 group cursor-pointer"
+                      className="absolute top-3 right-3 z-20 w-7 h-7 rounded-full bg-white/90 hover:bg-rose-50 border border-slate-200 hover:border-rose-300 flex items-center justify-center transition-all duration-200 group cursor-pointer"
                       title="Unfollow this path"
                     >
-                      <X className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
+                      <X className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-600 transition-colors" />
                     </button>
 
                     <div className="space-y-3 relative z-10 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] bg-pink-500/30 text-pink-200 border border-pink-500/20 font-bold uppercase tracking-wider font-mono">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold uppercase tracking-wider font-mono">
                           Following Path
                         </span>
-                        <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                        <span className="text-[10px] text-emerald-600 font-mono font-bold">
                           {percentage}% COMPLETE
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-lg font-black tracking-tight">{targetJob.title}</h3>
-                        <p className="text-xs text-slate-355 font-medium">At {targetJob.company} • {targetJob.location} • {targetJob.salary}</p>
+                        <h3 className="text-lg font-black text-slate-900 tracking-tight">{targetJob.title}</h3>
+                        <p className="text-xs text-slate-500 font-medium">At {targetJob.company} • {targetJob.location} • {targetJob.salary}</p>
                       </div>
 
                       <div className="space-y-1 max-w-md">
-                        <div className="flex justify-between text-[10px] font-semibold text-slate-300">
+                        <div className="flex justify-between text-[10px] font-semibold text-slate-650">
                           <span>Target Skills ({possessed} / {total})</span>
                           <span>{percentage}%</span>
                         </div>
-                        <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
-                          <motion.div className="bg-emerald-500 h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${percentage}%` }} transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.3 }} />
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                          <motion.div className="bg-emerald-500 h-full rounded-full" initial={{ width: 0 }} animate={{ width: `${percentage}%` }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }} />
                         </div>
                       </div>
 
                       {missingSkills.length > 0 ? (
-                        <p className="text-[11px] text-indigo-300 font-mono">
-                          Missing Skills: <span className="font-bold text-white">{missingSkills.join(', ')}</span>
+                        <p className="text-[11px] text-slate-550 font-mono">
+                          Missing Skills: <span className="font-bold text-slate-800">{missingSkills.join(', ')}</span>
                         </p>
                       ) : (
-                        <p className="text-[11px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+                        <p className="text-[11px] text-emerald-600 font-mono font-bold flex items-center gap-1">
                           <Check className="w-3.5 h-3.5" /> Ready to Apply! 100% verified fit.
                         </p>
                       )}
@@ -1308,8 +1310,8 @@ export default function CandidateWorkspace({
 
                     <div className="shrink-0 relative z-10 flex flex-row md:flex-col gap-2.5 w-full md:w-auto items-stretch md:items-end justify-between md:justify-center">
                       <div className="text-left md:text-right">
-                        <span className="text-xs font-mono text-slate-400 uppercase font-semibold block">Match score</span>
-                        <span className="text-3xl font-black text-emerald-400 leading-none">{matchScore}%</span>
+                        <span className="text-xs font-mono text-slate-500 uppercase font-semibold block">Match score</span>
+                        <span className="text-3xl font-black text-emerald-600 leading-none">{matchScore}%</span>
                       </div>
                       <button
                         onClick={() => {
@@ -1318,7 +1320,7 @@ export default function CandidateWorkspace({
                           setMyPathView('detail');
                           setActiveTargetJobId(targetJob.id);
                         }}
-                        className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer hover:scale-105 active:scale-95"
+                        className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1 cursor-pointer"
                       >
                         <span>Start Learning</span>
                         <ArrowRight className="w-4 h-4" />
@@ -1345,12 +1347,12 @@ export default function CandidateWorkspace({
                   };
                   const progress = getPathProgress(pathSkillsList);
 
-                  // Unique styling gradients for specialization cards
+                  // Unified clean hover states for specialization cards
                   const gradients: Record<string, string> = {
-                    'Full-Stack': 'from-blue-500/5 to-indigo-500/5 hover:border-indigo-400/40 hover:from-blue-500/10 hover:to-indigo-500/10',
-                    'AI Specialist': 'from-emerald-500/5 to-teal-500/5 hover:border-emerald-400/40 hover:from-emerald-500/10 hover:to-teal-500/10',
-                    'Product Designer': 'from-pink-500/5 to-rose-500/5 hover:border-pink-400/40 hover:from-pink-500/10 hover:to-rose-500/10',
-                    'Product Manager': 'from-amber-500/5 to-orange-500/5 hover:border-amber-400/40 hover:from-amber-500/10 hover:to-orange-500/10'
+                    'Full-Stack': 'hover:border-indigo-400/50 hover:bg-slate-50/40',
+                    'AI Specialist': 'hover:border-emerald-400/50 hover:bg-slate-50/40',
+                    'Product Designer': 'hover:border-indigo-400/50 hover:bg-slate-50/40',
+                    'Product Manager': 'hover:border-indigo-400/50 hover:bg-slate-50/40'
                   };
 
                   const badges: Record<string, string> = {
@@ -1363,10 +1365,10 @@ export default function CandidateWorkspace({
                   return (
                     <motion.div 
                       key={key}
-                      initial={{ opacity: 0, y: 30 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1], delay: 0.1 + cardIdx * 0.1 }}
-                      className={`bg-white rounded-3xl border border-slate-150 p-6 flex flex-col justify-between gap-6 transition-all duration-300 hover:shadow-md hover:scale-[1.02] bg-gradient-to-br ${gradients[key]}`}
+                      transition={{ duration: 0.2, ease: "easeOut", delay: 0.05 + cardIdx * 0.05 }}
+                      className={`bg-white rounded-3xl border border-slate-150 p-6 flex flex-col justify-between gap-6 transition-all duration-200 hover:shadow-sm ${gradients[key]}`}
                     >
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -1414,7 +1416,7 @@ export default function CandidateWorkspace({
                           setSelectedPath(key as any);
                           setMyPathView('detail');
                         }}
-                        className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:shadow hover:scale-[1.03] active:scale-95"
+                        className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                       >
                         <span>{progress.possessed > 0 ? 'Resume Learning' : 'Start Learning'}</span>
                         <ArrowRight className="w-4 h-4" />
@@ -1435,10 +1437,10 @@ export default function CandidateWorkspace({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -60 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 space-y-6 shadow-sm" id="my-path-detail-view"
+                  className="bg-white rounded-2xl md:rounded-3xl border border-slate-100 p-3 sm:p-8 space-y-4 sm:space-y-6 shadow-sm" id="my-path-detail-view"
                 >
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-5 gap-4">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-col border-b border-slate-100 pb-3 sm:pb-5 gap-3">
+                    <div className="flex items-center justify-between w-full">
                       <button
                         id="back-to-paths-btn"
                         onClick={() => setMyPathView('hub')}
@@ -1446,38 +1448,38 @@ export default function CandidateWorkspace({
                       >
                         <span>← Back to My Paths</span>
                       </button>
-                      <div>
-                        <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                          <span>{SKILL_TREES[selectedPath].title} Skill Tree{activeJob ? ` (${activeJob.title} at ${activeJob.company})` : ''}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono shrink-0">
                         PATH ACTIVE
                       </span>
-                    </h2>
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">
+                        {SKILL_TREES[selectedPath].title} Skill Tree{activeJob ? ` (${activeJob.title} at ${activeJob.company})` : ''}
+                      </h2>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Path description */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-105 text-xs text-slate-600 leading-relaxed font-sans">
-                <strong>Current Track:</strong> {SKILL_TREES[selectedPath].description}
-              </div>
+                  {/* Path description */}
+                  <div className="p-2.5 sm:p-4 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-105 text-[11px] sm:text-xs text-slate-600 leading-normal sm:leading-relaxed font-sans">
+                    <strong>Current Track:</strong> {SKILL_TREES[selectedPath].description}
+                  </div>
 
-              {/* Skill Tree Graph Box */}
-              {(() => {
-                const nodes = SKILL_TREES[selectedPath].nodes;
-                const maxX = nodes.length > 0 ? Math.max(...nodes.map(n => n.x)) : 800;
-                const maxY = nodes.length > 0 ? Math.max(...nodes.map(n => n.y)) : 600;
-                const canvasWidth = Math.max(maxX + 150, 800);
-                const canvasHeight = Math.max(maxY + 150, 600);
+                  {/* Skill Tree Graph Box */}
+                  {(() => {
+                    const nodes = SKILL_TREES[selectedPath].nodes;
+                    const maxX = nodes.length > 0 ? Math.max(...nodes.map(n => n.x)) : 800;
+                    const maxY = nodes.length > 0 ? Math.max(...nodes.map(n => n.y)) : 600;
+                    const canvasWidth = Math.max(maxX + 150, 800);
+                    const canvasHeight = Math.max(maxY + 150, 600);
 
-                const padding = 60;
-                const scaleX = (viewportSize.width - padding) / canvasWidth;
-                const scaleY = (viewportSize.height - padding) / canvasHeight;
-                const idealScale = Math.min(scaleX, scaleY, 0.85);
-                const minScale = Math.min(idealScale * 0.5, 0.1);
+                    const padding = 60;
+                    const scaleX = (viewportSize.width - padding) / canvasWidth;
+                    const scaleY = (viewportSize.height - padding) / canvasHeight;
+                    const idealScale = Math.min(scaleX, scaleY, 0.85);
+                    const minScale = Math.min(idealScale * 0.5, 0.1);
 
-                return (
-                  <div className="relative border border-slate-200 rounded-2xl bg-slate-50 overflow-hidden shadow-inner select-none h-[600px]" id="path-detail-tree-canvas">
+                    return (
+                      <div className="relative border border-slate-200 rounded-xl sm:rounded-2xl bg-slate-50 overflow-hidden shadow-inner select-none h-[380px] sm:h-[500px] md:h-[600px]" id="path-detail-tree-canvas">
                     <style>{`
                       @keyframes flow-particles-path {
                         0% { stroke-dashoffset: 24; }
@@ -2099,17 +2101,17 @@ export default function CandidateWorkspace({
       {activeTab === 'learning' && !selectedCourse && (
         <div className="space-y-6 animate-fadeIn" id="tab-panels-learning">
           {/* Welcome Dashboard Accent */}
-          <div className="bg-gradient-to-r from-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
-            <div className="absolute right-0 top-0 bottom-0 opacity-10 flex items-center pr-10 pointer-events-none">
+          <div className="bg-indigo-50/60 border border-indigo-100 rounded-2xl p-6 sm:p-8 text-indigo-950 relative overflow-hidden shadow-sm">
+            <div className="absolute right-0 top-0 bottom-0 opacity-5 flex items-center pr-10 text-indigo-600 pointer-events-none">
               <Layers className="w-72 h-72" />
             </div>
             
             <div className="max-w-xl relative z-10 space-y-3">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-indigo-505/30 text-indigo-200 border border-indigo-500/20">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200/30">
                 <Sparkles className="w-3.5 h-3.5 mr-1" /> CORE MISSION
               </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Your work output translates directly into hiring validation</h2>
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Your work output translates directly into hiring validation</h2>
+              <p className="text-sm text-indigo-900/80 leading-relaxed">
                 Skip self-reported resume bullets. When you complete lessons here, your database file updates automatically. Recruiters immediately discover your real capability.
               </p>
             </div>
@@ -2134,7 +2136,8 @@ export default function CandidateWorkspace({
                         course.category === 'Engineering' ? 'bg-indigo-50 text-indigo-700' :
                         course.category === 'Artificial Intelligence' ? 'bg-emerald-50 text-emerald-700' :
                         course.category === 'Design' ? 'bg-pink-50 text-pink-700' :
-                        course.category === 'Product' ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-700'
+                        course.category === 'Product' ? 'bg-amber-50 text-amber-700' :
+                        'bg-slate-50 text-slate-700'
                       }`}>
                         {course.category}
                       </span>

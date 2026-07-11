@@ -40,3 +40,19 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local design critiques cache
+.impeccable/
+
+# local design rules & docs
+agents.md
+claude.md
+
+# local test reports
+test_table.pdf
+test_table_nl.pdf
+test.pdf
+*.pdf
+
+DESIGN.md
+DEVELOPER_GUIDE.md
+PRODUCT.md

@@ -552,8 +552,8 @@ Key Requirements:
       
       {/* Main Workspace with Left Sidebar */}
       <div className="flex flex-1 overflow-hidden h-[calc(100vh-55px)] w-full">
-        {/* Left Workspace Sidebar (60px) */}
-        <aside className="w-16 bg-white border-r border-slate-200 flex flex-col justify-between items-center py-4 z-20 shadow-sm flex-shrink-0" id="sidebar-main">
+        {/* Left Workspace Sidebar (60px) - Hidden on Mobile */}
+        <aside className="hidden md:flex w-16 bg-white border-r border-slate-200 flex-col justify-between items-center py-4 z-20 shadow-sm flex-shrink-0" id="sidebar-main">
           {/* Navigation group */}
           <div className="flex flex-col items-center space-y-4 w-full">
             
@@ -943,6 +943,174 @@ Key Requirements:
             </div>
           </footer>
         </div>
+
+        {/* Mobile Bottom Navigation Bar - Only visible on small viewports */}
+        <nav className="flex md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 z-30 justify-around items-center px-2 shadow-lg" id="mobile-bottom-nav">
+          {activePage === 'candidate' && userRole !== 'recruiter' && (
+            <>
+              <button
+                onClick={() => setActivePage('marketplace')}
+                className="flex flex-col items-center justify-center flex-1 h-full text-slate-400 hover:text-slate-600 transition-colors"
+                title="Marketplace"
+              >
+                <Layers className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Market</span>
+              </button>
+              <button
+                onClick={() => setCandidateTab('learning')}
+                className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
+                  candidateTab === 'learning' ? 'text-indigo-600 font-bold' : 'text-slate-400 hover:text-slate-655'
+                }`}
+                title="Academy"
+              >
+                <BookOpen className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Academy</span>
+              </button>
+              <button
+                onClick={() => setCandidateTab('roadmaps')}
+                className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
+                  candidateTab === 'roadmaps' ? 'text-indigo-600 font-bold' : 'text-slate-400 hover:text-slate-655'
+                }`}
+                title="My Path"
+              >
+                <Compass className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">My Path</span>
+              </button>
+              <button
+                onClick={() => setCandidateTab('profile')}
+                className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
+                  candidateTab === 'profile' ? 'text-indigo-600 font-bold' : 'text-slate-400 hover:text-slate-655'
+                }`}
+                title="Portfolio"
+              >
+                <div className="relative">
+                  <Award className="w-5 h-5" />
+                  {activeCurrentUser.skills.length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-emerald-500 text-white rounded-full text-[8px] font-bold flex items-center justify-center">
+                      {activeCurrentUser.skills.length}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Portfolio</span>
+              </button>
+              <button
+                onClick={() => setCandidateTab('opportunities')}
+                className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
+                  candidateTab === 'opportunities' ? 'text-indigo-600 font-bold' : 'text-slate-400 hover:text-slate-655'
+                }`}
+                title="Discover Jobs"
+              >
+                <div className="relative">
+                  <Briefcase className="w-5 h-5" />
+                  <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-indigo-500 text-white rounded-full text-[8px] font-bold flex items-center justify-center">
+                    {jobs.length}
+                  </span>
+                </div>
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Jobs</span>
+              </button>
+            </>
+          )}
+
+          {activePage === 'recruiter' && userRole !== 'candidate' && (
+            <>
+              <button
+                onClick={() => setActivePage('marketplace')}
+                className="flex flex-col items-center justify-center flex-1 h-full text-slate-400 hover:text-slate-600 transition-colors"
+                title="Marketplace"
+              >
+                <Layers className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Market</span>
+              </button>
+              <button
+                onClick={() => setRecruiterTab('talent')}
+                className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
+                  recruiterTab === 'talent' ? 'text-indigo-600 font-bold' : 'text-slate-400 hover:text-slate-655'
+                }`}
+                title="Search Candidates"
+              >
+                <Users className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Talent</span>
+              </button>
+              <button
+                onClick={() => setRecruiterTab('post-job')}
+                className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
+                  recruiterTab === 'post-job' ? 'text-indigo-600 font-bold' : 'text-slate-400 hover:text-slate-655'
+                }`}
+                title="Post Live Listing"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Post</span>
+              </button>
+              <button
+                onClick={() => setRecruiterTab('my-jobs')}
+                className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
+                  recruiterTab === 'my-jobs' ? 'text-indigo-600 font-bold' : 'text-slate-400 hover:text-slate-655'
+                }`}
+                title="My Posted Jobs"
+              >
+                <Briefcase className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">My Jobs</span>
+              </button>
+              <button
+                onClick={() => setRecruiterTab('curriculum')}
+                className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors ${
+                  recruiterTab === 'curriculum' ? 'text-indigo-600 font-bold' : 'text-slate-400 hover:text-slate-655'
+                }`}
+                title="Requests"
+              >
+                <div className="relative">
+                  <BookOpen className="w-5 h-5" />
+                  {courseRequests.filter(r => r.status === 'Pending').length > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-500 text-white rounded-full text-[8px] font-bold flex items-center justify-center">
+                      {courseRequests.filter(r => r.status === 'Pending').length}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Requests</span>
+              </button>
+            </>
+          )}
+
+          {activePage === 'marketplace' && (
+            <>
+              <button
+                className="flex flex-col items-center justify-center flex-1 h-full text-indigo-600 font-bold"
+                title="Marketplace"
+              >
+                <Layers className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Marketplace</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (userRole === 'recruiter') {
+                    handleSwitchRoleWithConfirmation('candidate');
+                    return;
+                  }
+                  setActivePage('candidate');
+                }}
+                className="flex flex-col items-center justify-center flex-1 h-full text-slate-400 hover:text-slate-600 transition-colors"
+                title="Candidate view"
+              >
+                <GraduationCap className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Candidate</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (userRole === 'candidate') {
+                    handleSwitchRoleWithConfirmation('recruiter');
+                    return;
+                  }
+                  setActivePage('recruiter');
+                }}
+                className="flex flex-col items-center justify-center flex-1 h-full text-slate-400 hover:text-slate-655 transition-colors"
+                title="Recruiter view"
+              >
+                <Building2 className="w-5 h-5" />
+                <span className="text-[8px] font-extrabold mt-1 uppercase tracking-wider font-mono">Recruiter</span>
+              </button>
+            </>
+          )}
+        </nav>
       </div>
     </div>
   );

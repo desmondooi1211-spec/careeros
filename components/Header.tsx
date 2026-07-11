@@ -31,7 +31,7 @@ export default function Header({
           <div>
             <div className="flex items-center space-x-1.5">
               <span className="font-sans font-extrabold text-base tracking-tight text-slate-900">CareerOS</span>
-              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+              <span className="hidden sm:inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
                 Unified Ecosystem
               </span>
             </div>
@@ -61,7 +61,7 @@ export default function Header({
 
         {/* Persona Switch Switcher & Logout */}
         <div className="flex items-center space-x-3" id="header-actions">
-          <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg" id="persona-switcher">
+          <div className="hidden md:flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg" id="persona-switcher">
             {userRole !== 'recruiter' && (
               <button
                 id="switch-btn-candidate"

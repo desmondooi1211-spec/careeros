@@ -155,18 +155,20 @@ export default function RecruiterWorkspace({
 
   return (
     <div className="space-y-8" id="recruiter-workspace">
-      {/* Recruiter Sub-Header Navigation */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4" id="recruiter-subnav">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Recruitment Command Center</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-600 text-white font-mono uppercase tracking-wider">
-              Talent Pipeline active
-            </span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">Acquire zero-bias, verified candidates in real-time or request course syllabus adjustments to solve upstream talent shortage metrics.</p>
+      {/* Recruiter Sub-Header Navigation - Only shown on Talent Search tab */}
+      {activeTab === 'talent' && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4" id="recruiter-subnav">
+          <div>
+            <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              <span>Recruitment Command Center</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-indigo-600 text-white font-mono uppercase tracking-wider">
+                Talent Pipeline active
+              </span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">Acquire zero-bias, verified candidates in real-time or request course syllabus adjustments to solve upstream talent shortage metrics.</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 1. TALENT POOL SEARCH & FIT ASSESSMENT TAB PANEL */}
       {activeTab === 'talent' && (
@@ -180,12 +182,12 @@ export default function RecruiterWorkspace({
             </div>
             <div className="bg-white border border-slate-100 p-5 rounded-2xl shadow-sm space-y-1">
               <span className="text-[10px] text-slate-400 font-mono font-bold uppercase tracking-wider">COURSES IN DYNAMIC SYLLABUS</span>
-              <p className="text-2xl font-black text-indigo-600">{courses.length}</p>
+              <p className="text-2xl font-black text-slate-900">{courses.length}</p>
               <p className="text-xs text-slate-500">Continuous upstream learning path.</p>
             </div>
             <div className="bg-indigo-50/30 border border-indigo-100/50 p-5 rounded-2xl shadow-sm space-y-1">
               <span className="text-[10px] text-indigo-600 font-mono font-bold uppercase tracking-wider">UPSTREAM DEPLOYMENTS REQUESTED</span>
-              <p className="text-2xl font-black text-indigo-800">
+              <p className="text-2xl font-black text-slate-900">
                 {courseRequests.length} <span className="text-xs font-normal text-slate-500">({courseRequests.filter(r => r.status === 'Pending').length} Pending)</span>
               </p>
               <p className="text-xs text-slate-500">Direct integration of market demands.</p>
@@ -573,14 +575,14 @@ export default function RecruiterWorkspace({
 
           {/* Right Panel: Pending/Active requests */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-xl border border-slate-800 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                <BookOpen className="w-24 h-24 text-indigo-500" />
+            <div className="bg-indigo-50/60 text-indigo-950 rounded-2xl p-4 sm:p-6 shadow-sm border border-indigo-100/80 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10 text-indigo-650 pointer-events-none">
+                <BookOpen className="w-24 h-24" />
               </div>
-              <h3 className="text-base font-black tracking-tight mb-2 flex items-center gap-1.5 text-indigo-300">
-                <Flame className="w-4.5 h-4.5 text-amber-500" /> Continuous Self-Healing Marketplace
+              <h3 className="text-base font-black tracking-tight mb-2 flex items-center gap-1.5 text-slate-900">
+                <Flame className="w-4.5 h-4.5 text-amber-600" /> Continuous Self-Healing Marketplace
               </h3>
-              <p className="text-xs text-slate-305 leading-relaxed font-mono">
+              <p className="text-xs text-indigo-900/80 leading-relaxed font-mono">
                 When recruiters submit a request, they can directly <strong>APPROVE & BUILD</strong> it. This automatically structures an active course on the Candidate platform. Check out how it works in action below!
               </p>
             </div>
