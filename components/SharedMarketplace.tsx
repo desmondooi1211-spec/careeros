@@ -175,27 +175,27 @@ export default function SharedMarketplace({
           </div>
 
           {/* Interactive Educational Sandbox Helper */}
-          <div className="bg-gradient-to-br from-indigo-950 to-indigo-900 border border-dashed border-indigo-550 rounded-2xl p-6 space-y-4 relative overflow-hidden" id="sandbox-helper">
+          <div className="bg-indigo-50/40 border border-dashed border-indigo-200 rounded-2xl p-6 space-y-4 relative overflow-hidden" id="sandbox-helper">
             {/* Sandbox Indicator Badge */}
-            <div className="absolute top-3 right-3 bg-indigo-500/30 border border-indigo-400/40 text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded text-indigo-200 uppercase">
+            <div className="absolute top-3 right-3 bg-indigo-100 border border-indigo-200 text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded text-indigo-700 uppercase">
               Prototype Shortcut
             </div>
             
-            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-300">Experience Mutual Discovery Loop</h4>
-            <p className="text-xs text-indigo-100/90 leading-relaxed font-normal">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-800">Experience Mutual Discovery Loop</h4>
+            <p className="text-xs text-slate-650 leading-relaxed font-normal">
               CareerOS is designed with an interconnected loop:
             </p>
-            <div className="space-y-3 text-xs text-indigo-200">
+            <div className="space-y-3 text-xs text-slate-700">
               <div className="flex gap-2">
-                <span className="w-5 h-5 rounded-full bg-indigo-500/40 text-white flex items-center justify-center font-mono">1</span>
+                <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-mono font-bold">1</span>
                 <span>Completed courses in <strong>Candidate Mode</strong> automatically update portfolios.</span>
               </div>
               <div className="flex gap-2">
-                <span className="w-5 h-5 rounded-full bg-indigo-500/40 text-white flex items-center justify-center font-mono">2</span>
+                <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-mono font-bold">2</span>
                 <span>Recruiters instantly view those verified applicants in <strong>Recruiter Mode</strong>.</span>
               </div>
               <div className="flex gap-2">
-                <span className="w-5 h-5 rounded-full bg-indigo-500/40 text-white flex items-center justify-center font-mono">3</span>
+                <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-mono font-bold">3</span>
                 <span>Recruiters request missing skills, creating dynamic courses candidates study.</span>
               </div>
             </div>
@@ -203,7 +203,7 @@ export default function SharedMarketplace({
             <div className="pt-2 flex flex-col gap-2">
               <button 
                 onClick={onSwitchToCandidate}
-                className="w-full bg-white hover:bg-slate-100 text-indigo-950 font-bold py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-1"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-1 transition"
                 id="sandbox-candidate-btn"
               >
                 <span>Start Learning (Candidate View)</span> <ArrowRight className="w-3.5 h-3.5" />
@@ -211,7 +211,7 @@ export default function SharedMarketplace({
               
               <button 
                 onClick={onSwitchToRecruiter}
-                className="w-full bg-indigo-600 hover:bg-indigo-550 text-white border border-indigo-500 font-semibold py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-1"
+                className="w-full bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-semibold py-2 px-4 rounded-xl text-xs flex items-center justify-center gap-1 transition"
                 id="sandbox-recruiter-btn"
               >
                 <span>Browse Candidates (Recruiter View)</span> <ArrowRight className="w-3.5 h-3.5" />

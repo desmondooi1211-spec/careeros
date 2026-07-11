@@ -809,6 +809,8 @@ interface CandidateWorkspaceProps {
   onUpdateSkillLevel?: (skill: string, newLevel: 'Beginner' | 'Intermediate' | 'Pro') => void;
   onFollowJob?: (jobId: string) => void;
   onUnfollowJob?: (jobId: string) => void;
+  activeTab: 'learning' | 'profile' | 'opportunities' | 'roadmaps';
+  setActiveTab: (tab: 'learning' | 'profile' | 'opportunities' | 'roadmaps') => void;
 }
 
 export default function CandidateWorkspace({
@@ -824,9 +826,10 @@ export default function CandidateWorkspace({
   onUpdateTargetJob,
   onUpdateSkillLevel,
   onFollowJob,
-  onUnfollowJob
+  onUnfollowJob,
+  activeTab,
+  setActiveTab
 }: CandidateWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<'learning' | 'profile' | 'opportunities' | 'roadmaps'>('learning');
   const [profileView, setProfileView] = useState<'list' | 'tree'>('tree');
   const [showCurrentProgress, setShowCurrentProgress] = useState(false);
   const [myPathView, setMyPathView] = useState<'hub' | 'detail'>('hub');
@@ -1039,7 +1042,7 @@ export default function CandidateWorkspace({
   return (
     <div className="space-y-8" id="candidate-workspace">
       {/* Workspace Sub-Header Navigation */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-4 gap-4" id="candidate-subnav">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4" id="candidate-subnav">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <span>Welcome back, {candidate.name}</span>
@@ -1048,65 +1051,6 @@ export default function CandidateWorkspace({
             </span>
           </h1>
           <p className="text-sm text-slate-500 mt-1">Develop verified proof-of-ability and get matched immediately with hiring-ready pipelines.</p>
-        </div>
-
-        {/* Local Workspace Tabs */}
-        <div className="flex space-x-1.5 bg-slate-100/80 p-1 rounded-lg self-stretch sm:self-auto">
-          <button
-            onClick={() => { setActiveTab('learning'); setSelectedCourse(null); }}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-all ${
-              activeTab === 'learning'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4 text-indigo-500 animate-pulse" />
-            <span>Learning Academy</span>
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('roadmaps'); setSelectedCourse(null); }}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-all ${
-              activeTab === 'roadmaps'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Compass className="w-4 h-4 text-violet-500" />
-            <span>My Path</span>
-          </button>
-          
-          <button
-            onClick={() => { setActiveTab('profile'); setSelectedCourse(null); }}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-all ${
-              activeTab === 'profile'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Award className="w-4 h-4 text-emerald-500" />
-            <span>Verified Portfolio</span>
-            {candidate.skills.length > 0 && (
-              <span className="scale-90 px-1.5 py-0.2 bg-emerald-500 text-white rounded text-[9px]">
-                {candidate.skills.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('opportunities'); setSelectedCourse(null); }}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-all ${
-              activeTab === 'opportunities'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Briefcase className="w-4 h-4 text-indigo-500" />
-            <span>Discover Jobs</span>
-            <span className="scale-90 px-1.5 py-0.2 bg-indigo-100 text-indigo-700 rounded text-[9px] font-bold">
-              {jobs.length}
-            </span>
-          </button>
         </div>
       </div>
 
@@ -1404,14 +1348,14 @@ export default function CandidateWorkspace({
                   // Unique styling gradients for specialization cards
                   const gradients: Record<string, string> = {
                     'Full-Stack': 'from-blue-500/5 to-indigo-500/5 hover:border-indigo-400/40 hover:from-blue-500/10 hover:to-indigo-500/10',
-                    'AI Specialist': 'from-purple-500/5 to-fuchsia-500/5 hover:border-purple-400/40 hover:from-purple-500/10 hover:to-fuchsia-500/10',
+                    'AI Specialist': 'from-emerald-500/5 to-teal-500/5 hover:border-emerald-400/40 hover:from-emerald-500/10 hover:to-teal-500/10',
                     'Product Designer': 'from-pink-500/5 to-rose-500/5 hover:border-pink-400/40 hover:from-pink-500/10 hover:to-rose-500/10',
                     'Product Manager': 'from-amber-500/5 to-orange-500/5 hover:border-amber-400/40 hover:from-amber-500/10 hover:to-orange-500/10'
                   };
 
                   const badges: Record<string, string> = {
                     'Full-Stack': 'bg-indigo-50 text-indigo-700',
-                    'AI Specialist': 'bg-purple-50 text-purple-700',
+                    'AI Specialist': 'bg-emerald-50 text-emerald-700',
                     'Product Designer': 'bg-pink-50 text-pink-700',
                     'Product Manager': 'bg-amber-50 text-amber-700'
                   };
@@ -1505,7 +1449,7 @@ export default function CandidateWorkspace({
                       <div>
                         <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
                           <span>{SKILL_TREES[selectedPath].title} Skill Tree{activeJob ? ` (${activeJob.title} at ${activeJob.company})` : ''}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-100 font-mono">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono">
                         PATH ACTIVE
                       </span>
                     </h2>
@@ -1514,11 +1458,10 @@ export default function CandidateWorkspace({
               </div>
 
               {/* Path description */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs text-slate-600 leading-relaxed font-sans">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-105 text-xs text-slate-600 leading-relaxed font-sans">
                 <strong>Current Track:</strong> {SKILL_TREES[selectedPath].description}
               </div>
 
-              {/* Skill Tree Graph Box */}
               {/* Skill Tree Graph Box */}
               {(() => {
                 const nodes = SKILL_TREES[selectedPath].nodes;
@@ -1534,7 +1477,7 @@ export default function CandidateWorkspace({
                 const minScale = Math.min(idealScale * 0.5, 0.1);
 
                 return (
-                  <div className="relative border border-slate-150 rounded-2xl bg-slate-950 overflow-hidden shadow-inner select-none h-[600px]" id="path-detail-tree-canvas">
+                  <div className="relative border border-slate-200 rounded-2xl bg-slate-50 overflow-hidden shadow-inner select-none h-[600px]" id="path-detail-tree-canvas">
                     <style>{`
                       @keyframes flow-particles-path {
                         0% { stroke-dashoffset: 24; }
@@ -1556,11 +1499,11 @@ export default function CandidateWorkspace({
                       {({ zoomIn, zoomOut, resetTransform }) => (
                         <>
                           {/* Floating controls toolbar */}
-                          <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-slate-900/90 backdrop-blur border border-slate-800 p-1.5 rounded-xl shadow-lg">
+                          <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-slate-200 p-1.5 rounded-xl shadow-sm">
                             <button
                               type="button"
                               onClick={() => zoomIn()}
-                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white hover:text-indigo-400 transition-all font-bold text-sm cursor-pointer select-none"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all font-bold text-sm cursor-pointer select-none"
                               title="Zoom In"
                             >
                               +
@@ -1568,7 +1511,7 @@ export default function CandidateWorkspace({
                             <button
                               type="button"
                               onClick={() => zoomOut()}
-                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white hover:text-indigo-400 transition-all font-bold text-sm cursor-pointer select-none"
+                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all font-bold text-sm cursor-pointer select-none"
                               title="Zoom Out"
                             >
                               −
@@ -1576,17 +1519,40 @@ export default function CandidateWorkspace({
                             <button
                               type="button"
                               onClick={() => resetTransform()}
-                              className="px-2.5 h-7 flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all font-extrabold text-[10px] uppercase tracking-wider cursor-pointer select-none"
+                              className="px-3 h-8 flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-all font-extrabold text-[10px] uppercase tracking-wider cursor-pointer select-none"
                               title="Fit to Window"
                             >
                               Fit
                             </button>
                           </div>
 
+                          {/* Visual Legend Key Overlay */}
+                          <div className="absolute bottom-4 left-4 z-30 bg-white/90 backdrop-blur-md border border-slate-200/85 p-3 rounded-xl shadow-sm space-y-2 text-[10px] text-slate-600 w-36">
+                            <span className="font-bold text-slate-800 uppercase tracking-wider block border-b border-slate-100 pb-1.5 text-[9px]">Competency Level</span>
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded bg-emerald-50 border border-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.2)] block" />
+                                <span className="font-semibold text-slate-750">Verified Pro</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded bg-indigo-50 border border-indigo-500 shadow-[0_0_4px_rgba(99,102,241,0.2)] block" />
+                                <span className="font-semibold text-slate-755">Intermediate</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded bg-cyan-50 border border-cyan-500 shadow-[0_0_4px_rgba(6,182,212,0.2)] block" />
+                                <span className="font-semibold text-slate-750">Beginner</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-slate-400">
+                                <span className="w-2.5 h-2.5 rounded bg-slate-100 border border-slate-200 block" />
+                                <span>Locked</span>
+                              </div>
+                            </div>
+                          </div>
+
                           <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}>
                             <div className="relative" style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }}>
                               {/* Background grid canvas effect */}
-                              <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ 
+                              <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ 
                                 backgroundImage: 'radial-gradient(circle, #818cf8 1px, transparent 1px)', 
                                 backgroundSize: '16px 16px' 
                               }} />
@@ -1634,7 +1600,7 @@ export default function CandidateWorkspace({
                                         <path 
                                           d={d}
                                           fill="none"
-                                          stroke="#1e293b"
+                                          stroke="#e2e8f0"
                                           strokeWidth={1.5}
                                         />
 
@@ -1644,7 +1610,7 @@ export default function CandidateWorkspace({
                                             d={d}
                                             fill="none"
                                             stroke={
-                                              isTargetActive ? '#d946ef' : '#10b981'
+                                              isTargetActive ? '#4f46e5' : '#10b981'
                                             }
                                             strokeWidth={isTargetActive ? 3.0 : 2.5}
                                             initial={{ pathLength: 0 }}
@@ -1658,7 +1624,7 @@ export default function CandidateWorkspace({
                                           <motion.path
                                             d={d}
                                             fill="none"
-                                            stroke="#a7f3d0"
+                                            stroke="#86efac"
                                             strokeWidth={1.2}
                                             className="connector-flow-path"
                                             initial={{ opacity: 0 }}
@@ -1696,16 +1662,16 @@ export default function CandidateWorkspace({
                                     if (isUnlockedNode) {
                                       // "Lits up" in level color if completed
                                       if (mastery === 'Pro') {
-                                        nodeClass = 'bg-emerald-950/40 border-2 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.35)]';
+                                        nodeClass = 'bg-emerald-50 border-2 border-emerald-500 text-emerald-700 shadow-sm focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2';
                                       } else if (mastery === 'Intermediate') {
-                                        nodeClass = 'bg-indigo-950/40 border-2 border-indigo-500 text-indigo-350 shadow-[0_0_15px_rgba(99,102,241,0.35)]';
+                                        nodeClass = 'bg-indigo-50 border-2 border-indigo-500 text-indigo-700 shadow-sm focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2';
                                       } else {
-                                        nodeClass = 'bg-cyan-950/40 border-2 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.25)]';
+                                        nodeClass = 'bg-cyan-50 border-2 border-cyan-500 text-cyan-700 shadow-sm focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2';
                                       }
                                       
                                     } else {
                                       // "Does NOT lit up" - remains dim, dark, gray background, border, text
-                                      nodeClass = 'bg-slate-950/95 border border-slate-900 text-slate-750 opacity-25 cursor-pointer hover:opacity-50 hover:border-slate-800';
+                                      nodeClass = 'bg-slate-100 border border-slate-200 text-slate-400 opacity-60 cursor-pointer hover:opacity-90 hover:border-slate-350 focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2';
                                     }
 
                                     return (
@@ -1717,7 +1683,16 @@ export default function CandidateWorkspace({
                                           onMouseEnter={() => setHoveredSkill(node.name)}
                                           onMouseLeave={() => setHoveredSkill(null)}
                                           onClick={() => setHoveredSkill(node.name)}
-                                          className={`w-full h-full rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative group select-none ${nodeClass}`}
+                                          tabIndex={0}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                              e.preventDefault();
+                                              setHoveredSkill(hoveredSkill === node.name ? null : node.name);
+                                            }
+                                          }}
+                                          onFocus={() => setHoveredSkill(node.name)}
+                                          onBlur={() => setHoveredSkill(null)}
+                                          className={`w-full h-full rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative group select-none focus:outline-none ${nodeClass}`}
                                         >
                                           {/* Grayscale and opacity filter on icon if locked */}
                                           <div className={isUnlockedNode ? "" : "filter grayscale opacity-30 contrast-75 brightness-75 transition-all duration-300"}>
@@ -1726,13 +1701,13 @@ export default function CandidateWorkspace({
 
                                           {/* Center Lock icon overlay for locked nodes */}
                                           {!isUnlockedNode && (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/35 rounded-2xl shadow-inner">
-                                              <Lock className="w-4.5 h-4.5 text-slate-500/80 filter drop-shadow" />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-slate-50/20 rounded-2xl">
+                                              <Lock className="w-4.5 h-4.5 text-slate-400 filter drop-shadow" />
                                             </div>
                                           )}
 
-                                          <div className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-[10px] font-bold tracking-tight font-sans transition-colors ${
-                                            isUnlockedNode ? 'text-slate-400 group-hover:text-white' : 'text-slate-600'
+                                          <div className={`absolute -bottom-7 left-1/2 transform -translate-x-1/2 w-24 text-center text-[9px] font-bold tracking-tight font-sans transition-colors leading-tight ${
+                                            isUnlockedNode ? 'text-slate-600 group-hover:text-slate-900 group-focus:text-slate-900' : 'text-slate-400'
                                           }`}>
                                             {node.name}
                                           </div>
@@ -1763,13 +1738,13 @@ export default function CandidateWorkspace({
                                                     mastery === 'Pro' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
                                                     mastery === 'Intermediate' ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' :
                                                     mastery === 'Beginner' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' :
-                                                    'bg-slate-950 text-slate-500 border-slate-800'
+                                                    'bg-slate-955 text-slate-500 border-slate-800'
                                                   }`}>
                                                     {mastery.toUpperCase()}
                                                   </span>
                                                 </div>
 
-                                                <p className="text-slate-355 text-[11px] leading-relaxed font-sans">{node.description}</p>
+                                                <p className="text-slate-300 text-[11px] leading-relaxed font-sans">{node.description}</p>
 
                                                 {node.prerequisites.length > 0 && (
                                                   <div className="text-[10px] text-slate-400 font-mono">
@@ -2157,7 +2132,7 @@ export default function CandidateWorkspace({
                     <div className="flex items-start justify-between">
                       <span className={`px-2.5 py-1 rounded text-[10px] font-bold tracking-wide uppercase ${
                         course.category === 'Engineering' ? 'bg-indigo-50 text-indigo-700' :
-                        course.category === 'Artificial Intelligence' ? 'bg-purple-50 text-purple-700' :
+                        course.category === 'Artificial Intelligence' ? 'bg-emerald-50 text-emerald-700' :
                         course.category === 'Design' ? 'bg-pink-50 text-pink-700' :
                         course.category === 'Product' ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-700'
                       }`}>
@@ -2339,7 +2314,7 @@ export default function CandidateWorkspace({
                               <div className={`w-5.5 h-5.5 rounded-full flex items-center justify-center font-mono text-[9px] font-black text-white ${
                                 mastery === 'Pro' ? 'bg-emerald-500' :
                                 mastery === 'Intermediate' ? 'bg-indigo-600' :
-                                'bg-cyan-500 text-slate-900'
+                                'bg-slate-100 text-slate-700 font-semibold'
                               }`}>
                                 {mastery[0]}
                               </div>
@@ -2414,7 +2389,7 @@ export default function CandidateWorkspace({
                     const minScale = Math.min(idealScale * 0.5, 0.1);
 
                     return (
-                      <div className="relative border border-slate-150 rounded-2xl bg-slate-950 overflow-hidden shadow-inner select-none h-[500px]" id="profile-skill-tree-canvas">
+                      <div className="relative border border-slate-200 rounded-2xl bg-slate-50 overflow-hidden shadow-inner select-none h-[500px]" id="profile-skill-tree-canvas">
                         <style>{`
                           @keyframes flow-particles-profile {
                             0% { stroke-dashoffset: 24; }
@@ -2423,13 +2398,6 @@ export default function CandidateWorkspace({
                           .connector-flow-profile {
                             stroke-dasharray: 6, 4;
                             animation: flow-particles-profile 1.5s linear infinite;
-                          }
-                          @keyframes pulse-learning-profile {
-                            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.2)); opacity: 0.85; }
-                            50% { transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.5)); opacity: 1; }
-                          }
-                          .node-learning-pulse-profile {
-                            animation: pulse-learning-profile 2.2s ease-in-out infinite;
                           }
                         `}</style>
                         <TransformWrapper
@@ -2443,11 +2411,11 @@ export default function CandidateWorkspace({
                           {({ zoomIn, zoomOut, resetTransform }) => (
                             <>
                               {/* Floating controls toolbar */}
-                              <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-slate-900/90 backdrop-blur border border-slate-800 p-1.5 rounded-xl shadow-lg">
+                              <div className="absolute top-4 right-4 z-30 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-slate-200 p-1.5 rounded-xl shadow-sm">
                                 <button
                                   type="button"
                                   onClick={() => zoomIn()}
-                                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white hover:text-indigo-400 transition-all font-bold text-sm cursor-pointer select-none"
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all font-bold text-sm cursor-pointer select-none"
                                   title="Zoom In"
                                 >
                                   +
@@ -2455,7 +2423,7 @@ export default function CandidateWorkspace({
                                 <button
                                   type="button"
                                   onClick={() => zoomOut()}
-                                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-white hover:text-indigo-400 transition-all font-bold text-sm cursor-pointer select-none"
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all font-bold text-sm cursor-pointer select-none"
                                   title="Zoom Out"
                                 >
                                   −
@@ -2463,17 +2431,42 @@ export default function CandidateWorkspace({
                                 <button
                                   type="button"
                                   onClick={() => resetTransform()}
-                                  className="px-2.5 h-7 flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all font-extrabold text-[10px] uppercase tracking-wider cursor-pointer select-none"
+                                  className="px-3 h-8 flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-all font-extrabold text-[10px] uppercase tracking-wider cursor-pointer select-none"
                                   title="Fit to Window"
                                 >
                                   Fit
                                 </button>
                               </div>
 
+                              {/* Visual Legend Key Overlay */}
+                              <div className="absolute bottom-4 left-4 z-30 bg-white/90 backdrop-blur-md border border-slate-200/85 p-3 rounded-xl shadow-sm space-y-2 text-[10px] text-slate-600 w-36">
+                                <span className="font-bold text-slate-800 uppercase tracking-wider block border-b border-slate-100 pb-1.5 text-[9px]">Competency Level</span>
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded bg-emerald-50 border border-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.2)] block" />
+                                    <span className="font-semibold text-slate-750">Verified Pro</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded bg-indigo-50 border border-indigo-500 shadow-[0_0_4px_rgba(99,102,241,0.2)] block" />
+                                    <span className="font-semibold text-slate-755">Intermediate</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded bg-cyan-50 border border-cyan-500 shadow-[0_0_4px_rgba(6,182,212,0.2)] block" />
+                                    <span className="font-semibold text-slate-750">Beginner</span>
+                                  </div>
+                                  {showCurrentProgress && (
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2.5 h-2.5 rounded bg-amber-50 border border-dashed border-amber-500 block animate-pulse" />
+                                      <span className="font-semibold text-amber-700">In Progress</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
                               <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}>
                                 <div className="relative" style={{ width: `${canvasWidth}px`, height: `${canvasHeight}px` }}>
                                   {/* Background grid canvas effect */}
-                                  <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ 
+                                  <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ 
                                     backgroundImage: 'radial-gradient(circle, #818cf8 1px, transparent 1px)', 
                                     backgroundSize: '16px 16px' 
                                   }} />
@@ -2522,7 +2515,7 @@ export default function CandidateWorkspace({
                                         const toMastery = candidate.skillLevels?.[conn.to] || 'Intermediate';
                                         
                                         if (isTargetActive) {
-                                          strokeColor = '#d946ef';
+                                          strokeColor = '#4f46e5';
                                         } else if (fromMastery === 'Pro' && toMastery === 'Pro') {
                                           strokeColor = '#10b981';
                                         } else if (fromMastery === 'Beginner' || toMastery === 'Beginner') {
@@ -2537,7 +2530,7 @@ export default function CandidateWorkspace({
                                             <path 
                                               d={d}
                                               fill="none"
-                                              stroke="#1e293b"
+                                              stroke="#e2e8f0"
                                               strokeWidth={1.5}
                                             />
                                             
@@ -2559,7 +2552,7 @@ export default function CandidateWorkspace({
                                               <motion.path
                                                 d={d}
                                                 fill="none"
-                                                stroke="#a7f3d0"
+                                                stroke="#86efac"
                                                 strokeWidth={1.2}
                                                 className="connector-flow-profile"
                                                 initial={{ opacity: 0 }}
@@ -2613,14 +2606,14 @@ export default function CandidateWorkspace({
                                         let animateClass = '';
                                         if (isUnlockedNode) {
                                           if (mastery === 'Pro') {
-                                            nodeClass = 'bg-emerald-950/40 border-2 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.35)]';
+                                            nodeClass = 'bg-emerald-50 border-2 border-emerald-500 text-emerald-700 shadow-sm focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2';
                                           } else if (mastery === 'Intermediate') {
-                                            nodeClass = 'bg-indigo-950/40 border-2 border-indigo-500 text-indigo-350 shadow-[0_0_15px_rgba(99,102,241,0.35)]';
+                                            nodeClass = 'bg-indigo-50 border-2 border-indigo-500 text-indigo-700 shadow-sm focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2';
                                           } else {
-                                            nodeClass = 'bg-cyan-950/40 border-2 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.25)]';
+                                            nodeClass = 'bg-cyan-50 border-2 border-cyan-500 text-cyan-700 shadow-sm focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2';
                                           }
                                         } else if (showCurrentProgress && isLearningNode) {
-                                          nodeClass = 'border-dashed border-2 border-amber-500 bg-amber-950/45 text-amber-355 shadow-[0_0_12px_rgba(245,158,11,0.25)]';
+                                          nodeClass = 'border-dashed border-2 border-amber-500 bg-amber-50 text-amber-700 shadow-sm focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2';
                                           animateClass = ''; // static, no breathing
                                         } else {
                                           return null;
@@ -2635,12 +2628,21 @@ export default function CandidateWorkspace({
                                               onMouseEnter={() => setProfileHoveredSkill(node.name)}
                                               onMouseLeave={() => setProfileHoveredSkill(null)}
                                               onClick={() => setProfileHoveredSkill(node.name)}
-                                              className={`w-full h-full rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative group select-none ${nodeClass} ${animateClass}`}
+                                              tabIndex={0}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                  e.preventDefault();
+                                                  setProfileHoveredSkill(profileHoveredSkill === node.name ? null : node.name);
+                                                }
+                                              }}
+                                              onFocus={() => setProfileHoveredSkill(node.name)}
+                                              onBlur={() => setProfileHoveredSkill(null)}
+                                              className={`w-full h-full rounded-2xl flex flex-col items-center justify-center transition-all duration-300 relative group select-none focus:outline-none ${nodeClass} ${animateClass}`}
                                             >
                                               {renderSkillIcon(node.name)}
 
-                                              <div className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-[10px] font-bold tracking-tight font-sans transition-colors ${
-                                                isUnlockedNode ? 'text-slate-400 group-hover:text-white' : showCurrentProgress && isLearningNode ? 'text-amber-400' : 'text-slate-600'
+                                              <div className={`absolute -bottom-7 left-1/2 transform -translate-x-1/2 w-24 text-center text-[9px] font-bold tracking-tight font-sans transition-colors leading-tight ${
+                                                isUnlockedNode ? 'text-slate-600 group-hover:text-slate-900 group-focus:text-slate-900' : showCurrentProgress && isLearningNode ? 'text-amber-600' : 'text-slate-400'
                                               }`}>
                                                 {node.name}
                                               </div>
@@ -2678,7 +2680,7 @@ export default function CandidateWorkspace({
                                                       </span>
                                                     </div>
 
-                                                    <p className="text-slate-355 text-[11px] leading-relaxed font-sans">{node.description}</p>
+                                                    <p className="text-slate-300 text-[11px] leading-relaxed font-sans">{node.description}</p>
 
                                                     {nodeDetails.prerequisites.length > 0 && (
                                                       <div className="text-[10px] text-slate-400 font-mono">
@@ -2745,10 +2747,10 @@ export default function CandidateWorkspace({
                                       })}
                                     </div>
                                     </div>
-                                  </div>
-                              </TransformComponent>
-                            </>
-                          )}
+                                    </div>
+                                  </TransformComponent>
+                                </>
+                              )}
                         </TransformWrapper>
                       </div>
                     );
@@ -2787,7 +2789,7 @@ export default function CandidateWorkspace({
                             placeholder="e.g. FlightPath - Runway Analytics"
                             value={newProjTitle}
                             onChange={(e) => setNewProjTitle(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                           />
                         </div>
                         <div>
@@ -2798,7 +2800,7 @@ export default function CandidateWorkspace({
                             placeholder="React, Tailwind, Docker, rust (comma separated)"
                             value={newProjSkills}
                             onChange={(e) => setNewProjSkills(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                           />
                         </div>
                       </div>
@@ -2812,7 +2814,7 @@ export default function CandidateWorkspace({
                             placeholder="Explain what was constructed, quantitative speeds achieved, or challenges overcome."
                             value={newProjDesc}
                             onChange={(e) => setNewProjDesc(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                           />
                         </div>
                         <div>
@@ -2823,7 +2825,7 @@ export default function CandidateWorkspace({
                             placeholder="https://github.com/developer/flight-path"
                             value={newProjLink}
                             onChange={(e) => setNewProjLink(e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                           />
                           <div className="flex space-x-2 pt-4">
                             <button 
@@ -2900,7 +2902,7 @@ export default function CandidateWorkspace({
                 placeholder="Search jobs by title, company, or tech stack..."
                 value={jobSearch}
                 onChange={(e) => setJobSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
               />
             </div>
             
@@ -2911,7 +2913,7 @@ export default function CandidateWorkspace({
                 id="skill-filter-select"
                 value={selectedSkillFilter}
                 onChange={(e) => setSelectedSkillFilter(e.target.value)}
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
               >
                 <option value="All">All Competencies</option>
                 {allSkills.map(skill => (
@@ -3138,7 +3140,7 @@ export default function CandidateWorkspace({
               className="bg-white rounded-2xl p-6 sm:p-8 max-w-lg w-full border border-slate-100 shadow-2xl space-y-6 text-center"
             >
               <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto text-emerald-600">
-                <Award className="w-9 h-9 animate-bounce" />
+                <Award className="w-9 h-9" />
               </div>
 
               <div>

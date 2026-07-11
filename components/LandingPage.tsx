@@ -51,14 +51,14 @@ export default function LandingPage() {
       
       {/* Glow effects */}
       <div className="absolute top-[-10%] left-[-15%] w-[60%] h-[60%] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-15%] w-[60%] h-[60%] rounded-full bg-violet-600/10 blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-15%] w-[60%] h-[60%] rounded-full bg-emerald-600/10 blur-[130px] pointer-events-none" />
       <div className="absolute top-[40%] right-[10%] w-[45%] h-[45%] rounded-full bg-emerald-600/5 blur-[120px] pointer-events-none" />
 
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 bg-slate-950/85 backdrop-blur-md border-b border-slate-900" id="landing-header">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-900/30">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-900/30">
               <Layers className="w-5.5 h-5.5" />
             </div>
             <div>
@@ -81,7 +81,7 @@ export default function LandingPage() {
             </Link>
             <Link 
               href="/signup" 
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-xs tracking-wide shadow-lg shadow-indigo-600/20 active:scale-98 transition-all duration-200"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs tracking-wide shadow-md shadow-indigo-600/20 active:scale-98 transition-all duration-200"
             >
               Get Started
             </Link>
@@ -110,10 +110,10 @@ export default function LandingPage() {
           <motion.h1 
             variants={fadeInUp} 
             custom={1}
-            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.15] bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent max-w-4xl mx-auto"
+            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.15] text-white max-w-4xl mx-auto"
           >
             Where Learning and Hiring <br />
-            <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-pink-500 bg-clip-text text-transparent">Coexist in One Feed</span>
+            <span className="text-indigo-400">Coexist in One Feed</span>
           </motion.h1>
 
           {/* Subheading */}
@@ -223,11 +223,11 @@ export default function LandingPage() {
 
             {/* Recruiter Journey */}
             <div className="space-y-6">
-              <div className="flex items-center space-x-3 pb-2 border-b border-violet-950">
-                <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400 border border-violet-500/20">
+              <div className="flex items-center space-x-3 pb-2 border-b border-emerald-950">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
                   <Briefcase className="w-4 h-4" />
                 </div>
-                <h3 className="text-lg font-bold text-violet-400">Recruiter Flow</h3>
+                <h3 className="text-lg font-bold text-emerald-400">Recruiter Flow</h3>
               </div>
 
               {/* Step 1 */}
@@ -451,7 +451,7 @@ export default function LandingPage() {
             {/* Module 2 */}
             <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-850/60 hover:border-slate-800 transition-all flex flex-col justify-between">
               <div>
-                <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-400 border border-violet-500/20 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-450 border border-sky-500/20 mb-4">
                   <Code2 className="w-5 h-5" />
                 </div>
                 <h3 className="font-bold text-white text-base">Dynamic Portfolio</h3>
@@ -459,7 +459,7 @@ export default function LandingPage() {
                   A dynamic, public profile generated directly from your database records. Shows completed course transcripts and manual code project cards.
                 </p>
               </div>
-              <span className="text-[10px] text-violet-400 font-mono font-bold mt-4 uppercase">Core Layer</span>
+              <span className="text-[10px] text-sky-400 font-mono font-bold mt-4 uppercase">Core Layer</span>
             </div>
 
             {/* Module 3 */}

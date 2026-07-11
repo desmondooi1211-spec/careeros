@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import CandidateWorkspace from '@/components/CandidateWorkspace';
@@ -26,7 +27,13 @@ import {
   GraduationCap, 
   Briefcase, 
   Building2,
-  Lock 
+  Lock,
+  Compass,
+  Users,
+  BookOpen,
+  Plus,
+  Award,
+  Settings
 } from 'lucide-react';
 
 export default function Home() {
@@ -34,6 +41,10 @@ export default function Home() {
 
   // Navigation: "marketplace" | "candidate" | "recruiter"
   const [activePage, setActivePage] = useState<'marketplace' | 'candidate' | 'recruiter'>('marketplace');
+
+  // Navigation tabs state
+  const [candidateTab, setCandidateTab] = useState<'learning' | 'roadmaps' | 'profile' | 'opportunities'>('learning');
+  const [recruiterTab, setRecruiterTab] = useState<'talent' | 'post-job' | 'my-jobs' | 'curriculum'>('talent');
 
   // Auth States
   const [user, setUser] = useState<any>(null);
@@ -119,6 +130,40 @@ export default function Home() {
       setActivePage(targetRole);
     }
   };
+
+  // Keyboard shortcuts listener for switching views (1, 2, 3)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target && 
+        (target.tagName === 'INPUT' || 
+         target.tagName === 'TEXTAREA' || 
+         target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === '1') {
+        setActivePage('marketplace');
+      } else if (e.key === '2') {
+        if (userRole === 'recruiter') {
+          handleSwitchRoleWithConfirmation('candidate');
+        } else {
+          setActivePage('candidate');
+        }
+      } else if (e.key === '3') {
+        if (userRole === 'candidate') {
+          handleSwitchRoleWithConfirmation('recruiter');
+        } else {
+          setActivePage('recruiter');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [userRole]);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -504,204 +549,401 @@ Key Requirements:
         onLogout={handleLogout}
         userRole={userRole}
       />
-
-      {/* Primary Shared Global Navigation System */}
-      <nav className="bg-white border-b border-slate-150 py-3 px-4 sm:px-6 lg:px-8 shadow-sm relative z-30" id="global-sub-nav">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
-          
-          {/* Main Scope Switcher Tab Bar */}
-          <div className="flex bg-slate-100 p-1 rounded-xl self-stretch sm:self-auto" id="scope-tab-bar">
+      
+      {/* Main Workspace with Left Sidebar */}
+      <div className="flex flex-1 overflow-hidden h-[calc(100vh-55px)] w-full">
+        {/* Left Workspace Sidebar (60px) */}
+        <aside className="w-16 bg-white border-r border-slate-200 flex flex-col justify-between items-center py-4 z-20 shadow-sm flex-shrink-0" id="sidebar-main">
+          {/* Navigation group */}
+          <div className="flex flex-col items-center space-y-4 w-full">
             
-            <button
-              id="scope-btn-marketplace"
-              onClick={() => setActivePage('marketplace')}
-              className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activePage === 'marketplace'
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Layers className="w-4 h-4 text-emerald-400" />
-              <span>Coexistence Marketplace</span>
-            </button>
+            {/* Global Page Switchers in Sidebar */}
+            <div className="flex flex-col items-center space-y-2 pb-4 border-b border-slate-105 w-full">
+              <button
+                onClick={() => setActivePage('marketplace')}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                  activePage === 'marketplace'
+                    ? 'text-white'
+                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                }`}
+                title="Coexistence Marketplace"
+              >
+                {activePage === 'marketplace' && (
+                  <motion.div
+                    layoutId="active-sidebar-pill"
+                    className="absolute inset-0 bg-indigo-600 rounded-xl -z-10 shadow-md shadow-indigo-100"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <Layers className="w-5 h-5" />
+              </button>
 
-            <button
-              id="scope-btn-candidate"
-              onClick={() => {
-                if (userRole === 'recruiter') {
-                  handleSwitchRoleWithConfirmation('candidate');
-                  return;
-                }
-                setActivePage('candidate');
-              }}
-              className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-5 py-2 rounded-lg text-xs font-bold transition-all relative cursor-pointer ${
-                userRole === 'recruiter'
-                  ? 'opacity-65 text-slate-400 hover:text-slate-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              } ${activePage === 'candidate' && userRole !== 'recruiter' ? 'bg-slate-900 text-white shadow-md' : ''}`}
-            >
-              {userRole === 'recruiter' ? (
-                <Lock className="w-4 h-4 text-slate-400" />
-              ) : (
-                <GraduationCap className="w-4 h-4 text-indigo-400" />
-              )}
-              <span>My Learning Desk</span>
-            </button>
+              <button
+                onClick={() => {
+                  if (userRole === 'recruiter') {
+                    handleSwitchRoleWithConfirmation('candidate');
+                    return;
+                  }
+                  setActivePage('candidate');
+                }}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                  activePage === 'candidate' && userRole !== 'recruiter'
+                    ? 'text-white'
+                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                }`}
+                title="My Learning Desk"
+              >
+                {activePage === 'candidate' && userRole !== 'recruiter' && (
+                  <motion.div
+                    layoutId="active-sidebar-pill"
+                    className="absolute inset-0 bg-indigo-600 rounded-xl -z-10 shadow-md shadow-indigo-100"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <GraduationCap className="w-5 h-5" />
+              </button>
 
-            <button
-              id="scope-btn-recruiter"
-              onClick={() => {
-                if (userRole === 'candidate') {
-                  handleSwitchRoleWithConfirmation('recruiter');
-                  return;
-                }
-                setActivePage('recruiter');
-              }}
-              className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-5 py-2 rounded-lg text-xs font-bold transition-all relative cursor-pointer ${
-                userRole === 'candidate'
-                  ? 'opacity-65 text-slate-400 hover:text-slate-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              } ${activePage === 'recruiter' && userRole !== 'candidate' ? 'bg-slate-900 text-white shadow-md' : ''}`}
-            >
-              {userRole === 'candidate' ? (
-                <Lock className="w-4 h-4 text-slate-400" />
-              ) : (
-                <Building2 className="w-4 h-4 text-pink-400" />
-              )}
-              <span>Hiring Hub</span>
-            </button>
+              <button
+                onClick={() => {
+                  if (userRole === 'candidate') {
+                    handleSwitchRoleWithConfirmation('recruiter');
+                    return;
+                  }
+                  setActivePage('recruiter');
+                }}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                  activePage === 'recruiter' && userRole !== 'candidate'
+                    ? 'text-white'
+                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                }`}
+                title="Hiring Hub"
+              >
+                {activePage === 'recruiter' && userRole !== 'candidate' && (
+                  <motion.div
+                    layoutId="active-sidebar-pill"
+                    className="absolute inset-0 bg-indigo-600 rounded-xl -z-10 shadow-md shadow-indigo-100"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <Building2 className="w-5 h-5" />
+              </button>
+            </div>
 
+            {/* Sub-tabs specific to workspaces */}
+            {activePage === 'candidate' && userRole !== 'recruiter' && (
+              <div className="flex flex-col items-center space-y-3 pt-2">
+                <button
+                  onClick={() => setCandidateTab('roadmaps')}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                    candidateTab === 'roadmaps'
+                      ? 'text-white'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                  title="My Path (Skill Tree)"
+                >
+                  {candidateTab === 'roadmaps' && (
+                    <motion.div
+                      layoutId="active-candidate-tab-pill"
+                      className="absolute inset-0 bg-slate-900 rounded-xl -z-10 shadow-md"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <Compass className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setCandidateTab('learning')}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                    candidateTab === 'learning'
+                      ? 'text-white'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                  title="Learning Academy"
+                >
+                  {candidateTab === 'learning' && (
+                    <motion.div
+                      layoutId="active-candidate-tab-pill"
+                      className="absolute inset-0 bg-slate-900 rounded-xl -z-10 shadow-md"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <BookOpen className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setCandidateTab('profile')}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                    candidateTab === 'profile'
+                      ? 'text-white'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                  title="Verified Portfolio"
+                >
+                  {candidateTab === 'profile' && (
+                    <motion.div
+                      layoutId="active-candidate-tab-pill"
+                      className="absolute inset-0 bg-slate-900 rounded-xl -z-10 shadow-md"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <Award className="w-5 h-5 relative z-10" />
+                  {activeCurrentUser.skills.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center z-20">
+                      {activeCurrentUser.skills.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setCandidateTab('opportunities')}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                    candidateTab === 'opportunities'
+                      ? 'text-white'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                  title="Discover Jobs"
+                >
+                  {candidateTab === 'opportunities' && (
+                    <motion.div
+                      layoutId="active-candidate-tab-pill"
+                      className="absolute inset-0 bg-slate-900 rounded-xl -z-10 shadow-md"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <Briefcase className="w-5 h-5 relative z-10" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center z-20">
+                    {jobs.length}
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {activePage === 'recruiter' && userRole !== 'candidate' && (
+              <div className="flex flex-col items-center space-y-3 pt-2">
+                <button
+                  onClick={() => setRecruiterTab('talent')}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                    recruiterTab === 'talent'
+                      ? 'text-white'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                  title="Search Verified Candidates"
+                >
+                  {recruiterTab === 'talent' && (
+                    <motion.div
+                      layoutId="active-recruiter-tab-pill"
+                      className="absolute inset-0 bg-slate-900 rounded-xl -z-10 shadow-md"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <Users className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setRecruiterTab('post-job')}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                    recruiterTab === 'post-job'
+                      ? 'text-white'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                  title="Post Live Listing"
+                >
+                  {recruiterTab === 'post-job' && (
+                    <motion.div
+                      layoutId="active-recruiter-tab-pill"
+                      className="absolute inset-0 bg-slate-900 rounded-xl -z-10 shadow-md"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <Plus className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setRecruiterTab('my-jobs')}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                    recruiterTab === 'my-jobs'
+                      ? 'text-white'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                  title="My Posted Jobs"
+                >
+                  {recruiterTab === 'my-jobs' && (
+                    <motion.div
+                      layoutId="active-recruiter-tab-pill"
+                      className="absolute inset-0 bg-slate-900 rounded-xl -z-10 shadow-md"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <Briefcase className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setRecruiterTab('curriculum')}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
+                    recruiterTab === 'curriculum'
+                      ? 'text-white'
+                      : 'text-slate-400 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                  title="Syllabus Upstream Requests"
+                >
+                  {recruiterTab === 'curriculum' && (
+                    <motion.div
+                      layoutId="active-recruiter-tab-pill"
+                      className="absolute inset-0 bg-slate-900 rounded-xl -z-10 shadow-md"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <BookOpen className="w-5 h-5 relative z-10" />
+                  {courseRequests.filter(r => r.status === 'Pending').length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center z-20">
+                      {courseRequests.filter(r => r.status === 'Pending').length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Sandbox Controls Information Bar */}
-          <div className="flex items-center space-x-3 text-xs" id="sandbox-info-bar">
-            <span className="flex items-center gap-1.5 text-slate-500 font-medium">
-              <Info className="w-4 h-4 text-indigo-500" />
-              <span className="hidden lg:inline">Toggle views to experience how learning automatically unlocks hiring options!</span>
-              <span className="lg:hidden">Experiential Demo Active</span>
-            </span>
+          {/* Bottom Settings & Reset */}
+          <div className="flex flex-col items-center space-y-3 w-full">
             <button
               onClick={handleResetWorkspace}
-              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700/80 rounded-lg text-[11px] font-bold border border-rose-100 flex items-center gap-1 transition-all cursor-pointer"
-              title="Reset initial dataset parameters"
-              id="reset-playground-btn"
+              className="w-9 h-9 rounded-lg text-rose-500 hover:bg-rose-50 flex items-center justify-center cursor-pointer transition-all"
+              title="Reset Playground Data"
             >
-              <RefreshCcw className="w-3.5 h-3.5" /> <span>Reset playground</span>
+              <RefreshCcw className="w-4 h-4" />
+            </button>
+            <button
+              className="w-9 h-9 rounded-lg text-slate-400 hover:bg-slate-50 flex items-center justify-center cursor-pointer transition-all"
+              title="System Configuration"
+            >
+              <Settings className="w-4 h-4" />
             </button>
           </div>
+        </aside>
 
+        {/* Workspace Scrollable Stage Viewport */}
+        <div className="flex-1 overflow-y-auto flex flex-col justify-between bg-slate-50" id="stage-viewport-container">
+          <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1" id="stage-viewport">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePage}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15, ease: [0.25, 1, 0.5, 1] }}
+                className="w-full flex-grow flex flex-col"
+              >
+                {activePage === 'marketplace' && (
+                  <SharedMarketplace 
+                    candidates={candidates}
+                    jobs={jobs}
+                    courses={courses}
+                    appliedJobIds={appliedJobIds}
+                    courseRequests={courseRequests}
+                    onSwitchToCandidate={() => {
+                      if (userRole === 'recruiter') {
+                        handleSwitchRoleWithConfirmation('candidate');
+                        return;
+                      }
+                      setActivePage('candidate');
+                    }}
+                    onSwitchToRecruiter={() => {
+                      if (userRole === 'candidate') {
+                        handleSwitchRoleWithConfirmation('recruiter');
+                        return;
+                      }
+                      setActivePage('recruiter');
+                    }}
+                    onEvaluateCandidate={async (cand) => {
+                      if (userRole === 'candidate') {
+                        const roleLabel = 'Recruiter (Teh Meng Chang)';
+                        const confirmSwitch = window.confirm(
+                          `[Prototype Sandbox] Evaluating candidate fit requires Recruiter credentials.\n\nWould you like to temporarily switch your active prototype session to ${roleLabel} to assess ${cand.name}?`
+                        );
+                        if (!confirmSwitch) return;
+                        
+                        localStorage.setItem('co_current_user_email', 'recruiter@maybank.my');
+                        localStorage.setItem('co_current_user_role', 'recruiter');
+                        localStorage.setItem('co_current_user_name', 'Teh Meng Chang');
+                        localStorage.setItem('co_current_user_id', 'mock-recruiter-1');
+                        
+                        const { data: { user: currentUser } } = await supabase.auth.getUser();
+                        setUser(currentUser);
+                        setUserRole('recruiter');
+                      }
+                      setPreselectedCandidate(cand);
+                      setRecruiterTab('talent');
+                      setActivePage('recruiter');
+                    }}
+                  />
+                )}
+
+                {activePage === 'candidate' && userRole !== 'recruiter' && (
+                  <CandidateWorkspace 
+                    courses={courses}
+                    candidate={activeCurrentUser}
+                    jobs={jobs}
+                    onEnroll={handleEnrollCourse}
+                    onCompleteCourse={handleCompleteCourse}
+                    onAddProject={handleAddProject}
+                    onApplyJob={handleApplyJob}
+                    onUpdateStatus={handleUpdateStatus}
+                    appliedJobIds={appliedJobIds}
+                    onUpdateTargetJob={handleUpdateTargetJob}
+                    onUpdateSkillLevel={handleUpdateSkillLevel}
+                    onFollowJob={handleFollowJob}
+                    onUnfollowJob={handleUnfollowJob}
+                    activeTab={candidateTab}
+                    setActiveTab={setCandidateTab}
+                  />
+                )}
+
+                {activePage === 'recruiter' && userRole !== 'candidate' && (
+                  <RecruiterWorkspace 
+                    candidates={candidates}
+                    courses={courses}
+                    jobs={jobs}
+                    courseRequests={courseRequests}
+                    onAddJob={handleAddJob}
+                    onRequestCourse={handleRequestCourse}
+                    onApproveSyllabus={handleApproveSyllabus}
+                    initialFocusedCandidate={preselectedCandidate}
+                    onClearInitialFocusedCandidate={() => setPreselectedCandidate(null)}
+                    activeTab={recruiterTab}
+                    setActiveTab={setRecruiterTab}
+                  />
+                )}
+
+                {/* Fallbacks for unauthorized direct page state manipulation */}
+                {activePage === 'candidate' && userRole === 'recruiter' && (
+                  <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-slate-150 shadow-sm max-w-md mx-auto mt-12 gap-3">
+                    <Lock className="w-12 h-12 text-slate-400" />
+                    <h2 className="text-lg font-bold text-slate-800">Workspace Restricted</h2>
+                    <p className="text-sm text-slate-400 text-center">
+                      The Candidate Learning Desk is restricted to Candidate profiles. Switch back to Recruiter View in the top header.
+                    </p>
+                  </div>
+                )}
+
+                {activePage === 'recruiter' && userRole === 'candidate' && (
+                  <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-slate-150 shadow-sm max-w-md mx-auto mt-12 gap-3">
+                    <Lock className="w-12 h-12 text-slate-400" />
+                    <h2 className="text-lg font-bold text-slate-800">Workspace Restricted</h2>
+                    <p className="text-sm text-slate-400 text-center">
+                      The Recruiter Hiring Hub is restricted to Recruiter profiles. Switch back to Candidate View in the top header.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </main>
+
+          {/* Informative Footer */}
+          <footer className="bg-white border-t border-slate-150 py-4 px-4 text-center text-xs text-slate-450 font-mono" id="app-footer">
+            <div className="w-full space-y-1">
+              <p>© 2026 CareerOS Unified Pipeline Network. All rights reserved.</p>
+              <p className="text-[10px] text-slate-400">
+                Powered by consensus curriculum verification engines. Bridging physical supply vectors with demand patterns in real-time.
+              </p>
+            </div>
+          </footer>
         </div>
-      </nav>
-
-      {/* Primary Workspace Stage */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8" id="stage-viewport">
-        {activePage === 'marketplace' && (
-          <SharedMarketplace 
-            candidates={candidates}
-            jobs={jobs}
-            courses={courses}
-            appliedJobIds={appliedJobIds}
-            courseRequests={courseRequests}
-            onSwitchToCandidate={() => {
-              if (userRole === 'recruiter') {
-                handleSwitchRoleWithConfirmation('candidate');
-                return;
-              }
-              setActivePage('candidate');
-            }}
-            onSwitchToRecruiter={() => {
-              if (userRole === 'candidate') {
-                handleSwitchRoleWithConfirmation('recruiter');
-                return;
-              }
-              setActivePage('recruiter');
-            }}
-            onEvaluateCandidate={async (cand) => {
-              if (userRole === 'candidate') {
-                const roleLabel = 'Recruiter (Teh Meng Chang)';
-                const confirmSwitch = window.confirm(
-                  `[Prototype Sandbox] Evaluating candidate fit requires Recruiter credentials.\n\nWould you like to temporarily switch your active prototype session to ${roleLabel} to assess ${cand.name}?`
-                );
-                if (!confirmSwitch) return;
-                
-                localStorage.setItem('co_current_user_email', 'recruiter@maybank.my');
-                localStorage.setItem('co_current_user_role', 'recruiter');
-                localStorage.setItem('co_current_user_name', 'Teh Meng Chang');
-                localStorage.setItem('co_current_user_id', 'mock-recruiter-1');
-                
-                const { data: { user: currentUser } } = await supabase.auth.getUser();
-                setUser(currentUser);
-                setUserRole('recruiter');
-              }
-              setPreselectedCandidate(cand);
-              setActivePage('recruiter');
-            }}
-          />
-        )}
-
-        {activePage === 'candidate' && userRole !== 'recruiter' && (
-          <CandidateWorkspace 
-            courses={courses}
-            candidate={activeCurrentUser}
-            jobs={jobs}
-            onEnroll={handleEnrollCourse}
-            onCompleteCourse={handleCompleteCourse}
-            onAddProject={handleAddProject}
-            onApplyJob={handleApplyJob}
-            onUpdateStatus={handleUpdateStatus}
-            appliedJobIds={appliedJobIds}
-            onUpdateTargetJob={handleUpdateTargetJob}
-            onUpdateSkillLevel={handleUpdateSkillLevel}
-            onFollowJob={handleFollowJob}
-            onUnfollowJob={handleUnfollowJob}
-          />
-        )}
-
-        {activePage === 'recruiter' && userRole !== 'candidate' && (
-          <RecruiterWorkspace 
-            candidates={candidates}
-            courses={courses}
-            jobs={jobs}
-            courseRequests={courseRequests}
-            onAddJob={handleAddJob}
-            onRequestCourse={handleRequestCourse}
-            onApproveSyllabus={handleApproveSyllabus}
-            initialFocusedCandidate={preselectedCandidate}
-            onClearInitialFocusedCandidate={() => setPreselectedCandidate(null)}
-          />
-        )}
-
-        {/* Fallbacks for unauthorized direct page state manipulation */}
-        {activePage === 'candidate' && userRole === 'recruiter' && (
-          <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-slate-150 shadow-sm max-w-md mx-auto mt-12 gap-3">
-            <Lock className="w-12 h-12 text-slate-400" />
-            <h2 className="text-lg font-bold text-slate-800">Workspace Restricted</h2>
-            <p className="text-sm text-slate-400 text-center">
-              The Candidate Learning Desk is restricted to Candidate profiles. Switch back to Recruiter View in the top header.
-            </p>
-          </div>
-        )}
-
-        {activePage === 'recruiter' && userRole === 'candidate' && (
-          <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-slate-150 shadow-sm max-w-md mx-auto mt-12 gap-3">
-            <Lock className="w-12 h-12 text-slate-400" />
-            <h2 className="text-lg font-bold text-slate-800">Workspace Restricted</h2>
-            <p className="text-sm text-slate-400 text-center">
-              The Recruiter Hiring Hub is restricted to Recruiter profiles. Switch back to Candidate View in the top header.
-            </p>
-          </div>
-        )}
-      </main>
-
-      {/* Informative Footer */}
-      <footer className="bg-white border-t border-slate-100 py-6 px-4 mt-12 text-center text-xs text-slate-400 font-mono" id="app-footer">
-        <div className="max-w-7xl mx-auto space-y-1">
-          <p>© 2026 CareerOS Unified Pipeline Network. All rights reserved.</p>
-          <p className="text-[10px] text-slate-350">
-            Powered by consensus curriculum verification engines. Bridging physical supply vectors with demand patterns in real-time.
-          </p>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

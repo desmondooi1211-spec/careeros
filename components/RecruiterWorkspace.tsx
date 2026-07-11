@@ -32,6 +32,8 @@ interface RecruiterWorkspaceProps {
   onApproveSyllabus: (requestId: string) => void;
   initialFocusedCandidate?: Candidate | null;
   onClearInitialFocusedCandidate?: () => void;
+  activeTab: 'talent' | 'post-job' | 'curriculum' | 'my-jobs';
+  setActiveTab: (tab: 'talent' | 'post-job' | 'curriculum' | 'my-jobs') => void;
 }
 
 export default function RecruiterWorkspace({
@@ -43,9 +45,10 @@ export default function RecruiterWorkspace({
   onRequestCourse,
   onApproveSyllabus,
   initialFocusedCandidate,
-  onClearInitialFocusedCandidate
+  onClearInitialFocusedCandidate,
+  activeTab,
+  setActiveTab
 }: RecruiterWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<'talent' | 'post-job' | 'curriculum' | 'my-jobs'>('talent');
   const [candidateSearch, setCandidateSearch] = useState('');
   const [selectedSkillFilter, setSelectedSkillFilter] = useState('All');
 
@@ -153,7 +156,7 @@ export default function RecruiterWorkspace({
   return (
     <div className="space-y-8" id="recruiter-workspace">
       {/* Recruiter Sub-Header Navigation */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-4 gap-4" id="recruiter-subnav">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4" id="recruiter-subnav">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <span>Recruitment Command Center</span>
@@ -162,62 +165,6 @@ export default function RecruiterWorkspace({
             </span>
           </h1>
           <p className="text-sm text-slate-500 mt-1">Acquire zero-bias, verified candidates in real-time or request course syllabus adjustments to solve upstream talent shortage metrics.</p>
-        </div>
-
-        {/* Workspace Management Tabs */}
-        <div className="flex space-x-1.5 bg-slate-100/80 p-1 rounded-lg self-stretch sm:self-auto">
-          <button
-            onClick={() => setActiveTab('talent')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-all ${
-              activeTab === 'talent'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Search Verified Candidates</span>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('post-job')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-all ${
-              activeTab === 'post-job'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Post Live Listing</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('my-jobs')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-all ${
-              activeTab === 'my-jobs'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Briefcase className="w-4 h-4" />
-            <span>My Posted Jobs</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('curriculum')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-all ${
-              activeTab === 'curriculum'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Syllabus Upstream Requests</span>
-            {courseRequests.filter(r => r.status === 'Pending').length > 0 && (
-              <span className="scale-90 px-1.5 py-0.2 bg-amber-500 text-white rounded text-[9px] font-bold">
-                {courseRequests.filter(r => r.status === 'Pending').length}
-              </span>
-            )}
-          </button>
         </div>
       </div>
 
@@ -258,7 +205,7 @@ export default function RecruiterWorkspace({
                 placeholder="Search candidates by name, job role, qualifications..."
                 value={candidateSearch}
                 onChange={(e) => setCandidateSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
               />
             </div>
             
@@ -426,7 +373,7 @@ export default function RecruiterWorkspace({
                   placeholder="e.g. LLM Interaction Specialist"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
                 />
               </div>
 
@@ -439,7 +386,7 @@ export default function RecruiterWorkspace({
                   placeholder="e.g. Stripe, OpenAI"
                   value={jobCompany}
                   onChange={(e) => setJobCompany(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
                 />
               </div>
             </div>
@@ -453,7 +400,7 @@ export default function RecruiterWorkspace({
                   placeholder="e.g. $130k – $160K"
                   value={jobSalary}
                   onChange={(e) => setJobSalary(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
                 />
               </div>
 
@@ -465,7 +412,7 @@ export default function RecruiterWorkspace({
                   placeholder="e.g. Remote (EU timezones)"
                   value={jobLocation}
                   onChange={(e) => setJobLocation(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
                 />
               </div>
 
@@ -475,7 +422,7 @@ export default function RecruiterWorkspace({
                   id="job-type-select"
                   value={jobType} 
                   onChange={(e) => setJobType(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
                 >
                   <option value="Full-time">Full-time Employee</option>
                   <option value="Contract">Contract basis</option>
@@ -494,7 +441,7 @@ export default function RecruiterWorkspace({
                 placeholder="Next.js, React, SSR, Gemini API (comma separated)"
                 value={jobSkills}
                 onChange={(e) => setJobSkills(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50 font-mono text-[11px]"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50 font-mono text-[11px]"
               />
               <p className="text-[10px] text-slate-400 mt-1">Please enter the exact skill names that match the academic available courses for maximum pipeline correlation!</p>
             </div>
@@ -508,7 +455,7 @@ export default function RecruiterWorkspace({
                 placeholder="Write the responsibilities, expected daily workflow, and strategic metrics details of the employee..."
                 value={jobDesc}
                 onChange={(e) => setJobDesc(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50 leading-relaxed"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50 leading-relaxed"
               />
             </div>
 
@@ -559,7 +506,7 @@ export default function RecruiterWorkspace({
                   placeholder="e.g. Advanced Rust Programming"
                   value={reqTitle}
                   onChange={(e) => setReqTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                 />
               </div>
 
@@ -572,7 +519,7 @@ export default function RecruiterWorkspace({
                   placeholder="Rust, Memory Management, WASM"
                   value={reqSkills}
                   onChange={(e) => setReqSkills(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono text-[11px]"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 font-mono text-[11px]"
                 />
               </div>
 
@@ -585,7 +532,7 @@ export default function RecruiterWorkspace({
                   placeholder="What is the objective of the course? Describe the technical capabilities students should prove."
                   value={reqDesc}
                   onChange={(e) => setReqDesc(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                 />
               </div>
 
@@ -597,7 +544,7 @@ export default function RecruiterWorkspace({
                   placeholder="e.g. We have 3 active positions but zero verified applicants have WebAssembly badges. We need this upstream!"
                   value={reqNotes}
                   onChange={(e) => setReqNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                 />
               </div>
 
@@ -610,7 +557,7 @@ export default function RecruiterWorkspace({
                   placeholder="Your Name (Hiring Lead)"
                   value={reqRecruiterName}
                   onChange={(e) => setReqRecruiterName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
                 />
               </div>
 
@@ -671,7 +618,7 @@ export default function RecruiterWorkspace({
                       <p className="text-xs text-slate-600 leading-relaxed">{req.description}</p>
                       
                       {req.notes && (
-                        <div className="bg-slate-50 p-3 rounded-lg border-l-2 border-indigo-505 text-xs text-slate-600 block">
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-600 block">
                           <strong>Note:</strong> "{req.notes}"
                         </div>
                       )}
@@ -902,10 +849,9 @@ export default function RecruiterWorkspace({
                           return (
                             <div className="space-y-2 pt-4 border-t border-slate-100">
                               <span className="text-[10px] text-slate-400 font-mono font-bold uppercase block">Visual Competency Graph Comparison ({SKILL_TREES[activeTreePath].title})</span>
-                              
-                              <div className="relative border border-slate-200 rounded-xl bg-slate-950 p-2 overflow-hidden select-none" style={{ height: '220px' }}>
+                                       <div className="relative border border-slate-200 rounded-xl bg-slate-50 p-2 overflow-hidden select-none" style={{ height: '220px' }}>
                                 {/* Radial dots grid */}
-                                <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ 
+                                <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ 
                                   backgroundImage: 'radial-gradient(circle, #818cf8 1px, transparent 1px)', 
                                   backgroundSize: '12px 12px' 
                                 }} />
@@ -942,7 +888,7 @@ export default function RecruiterWorkspace({
                                       const fromUnlocked = focusedCandidate.skills.includes(fromNode.name);
                                       const toUnlocked = focusedCandidate.skills.includes(toNode.name);
 
-                                      let strokeColor = '#1e293b';
+                                      let strokeColor = '#e2e8f0';
                                       let strokeDash = undefined;
                                       let strokeWidth = 1.5;
 
@@ -950,7 +896,7 @@ export default function RecruiterWorkspace({
                                         strokeColor = 'url(#recruiter-glow-grad)';
                                         strokeWidth = 2.5;
                                       } else if (fromUnlocked) {
-                                        strokeColor = '#475569';
+                                        strokeColor = '#94a3b8';
                                         strokeDash = '3,3';
                                       }
 
@@ -990,15 +936,15 @@ export default function RecruiterWorkspace({
                                     let nodeClass = '';
                                     if (isRequired) {
                                       if (isUnlocked) {
-                                        nodeClass = 'bg-emerald-950 border border-emerald-500 text-emerald-400 ring-2 ring-emerald-400/20';
+                                        nodeClass = 'bg-emerald-50 border border-emerald-500 text-emerald-700 shadow-sm';
                                       } else {
-                                        nodeClass = 'bg-rose-950 border border-dashed border-rose-500 text-rose-450';
+                                        nodeClass = 'bg-rose-50 border border-dashed border-rose-400 text-rose-700 shadow-sm';
                                       }
                                     } else {
                                       if (isUnlocked) {
-                                        nodeClass = 'bg-slate-900 border border-slate-700 text-slate-400';
+                                        nodeClass = 'bg-slate-100 border border-slate-300 text-slate-650';
                                       } else {
-                                        nodeClass = 'bg-slate-950 border border-slate-800 text-slate-800';
+                                        nodeClass = 'bg-slate-200/50 border border-slate-200 text-slate-400';
                                       }
                                     }
 
