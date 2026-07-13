@@ -211,7 +211,7 @@ Best Practices:
 export const INITIAL_CANDIDATES: Candidate[] = [
   {
     id: 'candidate-current',
-    name: 'Alex Carter',
+    name: 'Khor Ming Yao',
     title: 'Associate Full-Stack Developer',
     bio: 'Self-taught engineer focusing on React applications and backend services. Eager to transition to high-impact software design teams.',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
@@ -241,7 +241,7 @@ export const INITIAL_CANDIDATES: Candidate[] = [
     ],
     status: 'Open for Offers',
     isCurrentUser: true,
-    followedJobIds: []
+    followedJobIds: ['job-1', 'job-2']
   },
   {
     id: 'candidate-1',
@@ -267,7 +267,7 @@ export const INITIAL_CANDIDATES: Candidate[] = [
       }
     ],
     status: 'Interviewing',
-    followedJobIds: []
+    followedJobIds: ['job-1', 'job-3']
   },
   {
     id: 'candidate-2',
@@ -297,7 +297,7 @@ export const INITIAL_CANDIDATES: Candidate[] = [
       }
     ],
     status: 'Active',
-    followedJobIds: []
+    followedJobIds: ['job-1', 'job-2']
   },
   {
     id: 'candidate-3',
@@ -316,7 +316,310 @@ export const INITIAL_CANDIDATES: Candidate[] = [
     },
     projects: [],
     status: 'Open for Offers',
-    followedJobIds: []
+    followedJobIds: ['job-4']
+  },
+  // ── Additional candidates to populate Tinder decks ───────────────────────
+
+  // job-1: Full-Stack Developer (Brainwave AI) — 1 more needed
+  {
+    id: 'candidate-4',
+    name: 'Elena Vasquez',
+    title: 'Full-Stack Engineer',
+    bio: 'Shipping production React + Node.js apps for five years. Passionate about clean APIs and seamless server-side rendering with Next.js.',
+    avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=200',
+    email: 'elena.v@example.com',
+    completedCourseIds: ['course-1'],
+    skills: ['React', 'Next.js', 'Node.js', 'TypeScript', 'REST APIs', 'SSR', 'SQL'],
+    skillLevels: { 'React': 'Pro', 'Next.js': 'Pro', 'Node.js': 'Intermediate', 'TypeScript': 'Pro', 'REST APIs': 'Pro', 'SSR': 'Intermediate', 'SQL': 'Beginner' },
+    projects: [{ id: 'p4-1', title: 'PulseBoard', description: 'Real-time analytics dashboard built on Next.js 14 with live server-sent events.', skills: ['Next.js', 'React'] }],
+    status: 'Open for Offers',
+    followedJobIds: ['job-1']
+  },
+
+  // job-2: Senior Frontend Architect (Veloce) — 1 more needed
+  {
+    id: 'candidate-5',
+    name: 'Carlos Reyes',
+    title: 'Frontend Architect',
+    bio: 'Obsessed with micro-frontend patterns and design systems. Built scalable component ecosystems for fintech and SaaS at scale.',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=200',
+    email: 'carlos.r@example.com',
+    completedCourseIds: ['course-1', 'course-3'],
+    skills: ['React', 'TypeScript', 'Micro-Frontends', 'HTML5/CSS3', 'Next.js', 'State Management', 'SSR', 'Server Actions', 'Tailwind'],
+    skillLevels: { 'React': 'Pro', 'TypeScript': 'Pro', 'Micro-Frontends': 'Pro', 'HTML5/CSS3': 'Pro', 'Next.js': 'Intermediate', 'State Management': 'Pro', 'SSR': 'Intermediate', 'Server Actions': 'Beginner', 'Tailwind': 'Intermediate' },
+    projects: [{ id: 'p5-1', title: 'Nexus UI', description: 'Enterprise micro-frontend shell using Module Federation and custom design tokens.', skills: ['Micro-Frontends', 'React'] }],
+    status: 'Interviewing',
+    followedJobIds: ['job-2']
+  },
+
+  // job-3: Systems & Reliability Architect (Nebula Stream) — 8 more needed
+  {
+    id: 'candidate-6',
+    name: 'Raj Patel',
+    title: 'DevOps & Cloud Engineer',
+    bio: 'Kubernetes cluster operator running multi-region deployments for high-traffic APIs. Specializes in cost-efficient container orchestration.',
+    avatar: 'https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&q=80&w=200',
+    email: 'raj.p@example.com',
+    completedCourseIds: ['course-2'],
+    skills: ['Kubernetes', 'Go', 'AWS', 'Gemini API', 'AI Engineering'],
+    skillLevels: { 'Kubernetes': 'Pro', 'Go': 'Pro', 'AWS': 'Pro', 'Gemini API': 'Beginner', 'AI Engineering': 'Beginner' },
+    projects: [{ id: 'p6-1', title: 'K8s Auto-Scaler', description: 'Custom HPA controller that dynamically scales pods based on queue depth metrics.', skills: ['Kubernetes', 'Go'] }],
+    status: 'Open for Offers',
+    followedJobIds: ['job-3']
+  },
+  {
+    id: 'candidate-7',
+    name: 'Aisha Mohammed',
+    title: 'Site Reliability Engineer',
+    bio: 'SRE focused on keeping distributed systems at five-nines uptime. Deep experience with observability stacks and incident response playbooks.',
+    avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=200',
+    email: 'aisha.m@example.com',
+    completedCourseIds: ['course-1'],
+    skills: ['Terraform', 'GCP', 'Site Reliability', 'Next.js', 'React'],
+    skillLevels: { 'Terraform': 'Pro', 'GCP': 'Pro', 'Site Reliability': 'Pro', 'Next.js': 'Intermediate', 'React': 'Intermediate' },
+    projects: [],
+    status: 'Active',
+    followedJobIds: ['job-3']
+  },
+  {
+    id: 'candidate-8',
+    name: 'Sophie Chen',
+    title: 'Infrastructure Architect',
+    bio: 'Designed hybrid cloud infrastructures for Fortune 500 clients. Advocates for infrastructure-as-code and GitOps deployment pipelines.',
+    avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&q=80&w=200',
+    email: 'sophie.c@example.com',
+    completedCourseIds: ['course-4'],
+    skills: ['Docker', 'Ansible', 'Azure', 'PLG', 'Funnel Analytics'],
+    skillLevels: { 'Docker': 'Pro', 'Ansible': 'Pro', 'Azure': 'Intermediate', 'PLG': 'Beginner', 'Funnel Analytics': 'Beginner' },
+    projects: [{ id: 'p8-1', title: 'TerraStack', description: 'Open-source Terraform modules for zero-downtime blue-green deployments on AWS EKS.', skills: ['Terraform', 'Docker'] }],
+    status: 'Open for Offers',
+    followedJobIds: ['job-3']
+  },
+  {
+    id: 'candidate-9',
+    name: 'Priya Nair',
+    title: 'Cloud Platform Engineer',
+    bio: 'Builds resilient microservice platforms on Kubernetes with automated chaos engineering to validate fault tolerance before production release.',
+    avatar: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=200',
+    email: 'priya.n@example.com',
+    completedCourseIds: ['course-3'],
+    skills: ['Rust', 'WebAssembly', 'Micro-Frontends', 'Design Systems'],
+    skillLevels: { 'Rust': 'Pro', 'WebAssembly': 'Intermediate', 'Micro-Frontends': 'Beginner', 'Design Systems': 'Intermediate' },
+    projects: [],
+    status: 'Interviewing',
+    followedJobIds: ['job-3']
+  },
+  {
+    id: 'candidate-10',
+    name: 'Jordan Williams',
+    title: 'Backend & Systems Engineer',
+    bio: 'Writes high-throughput Node.js services deployed on containerized fleets. Strong grasp of distributed tracing and service mesh architectures.',
+    avatar: 'https://images.unsplash.com/photo-1463453091185-61582044d556?auto=format&fit=crop&q=80&w=200',
+    email: 'jordan.w@example.com',
+    completedCourseIds: ['course-2'],
+    skills: ['Python', 'Django', 'PostgreSQL', 'Large Language Models', 'Prompt Engineering'],
+    skillLevels: { 'Python': 'Pro', 'Django': 'Pro', 'PostgreSQL': 'Pro', 'Large Language Models': 'Intermediate', 'Prompt Engineering': 'Intermediate' },
+    projects: [{ id: 'p10-1', title: 'Tracewire', description: 'Lightweight distributed tracing SDK for Node.js microservices with zero-overhead sampling.', skills: ['Python', 'PostgreSQL'] }],
+    status: 'Active',
+    followedJobIds: ['job-3']
+  },
+  {
+    id: 'candidate-11',
+    name: 'Kevin Zhang',
+    title: 'Platform Reliability Engineer',
+    bio: 'Passionate about runbook automation and proactive capacity planning. Runs on-call rotations for global streaming platforms with 50M+ users.',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200',
+    email: 'kevin.z@example.com',
+    completedCourseIds: [],
+    skills: ['Kubernetes', 'CI/CD', 'Docker', 'Scalability', 'Performance Optimization', 'SQL'],
+    skillLevels: { 'Kubernetes': 'Pro', 'CI/CD': 'Pro', 'Docker': 'Intermediate', 'Scalability': 'Pro', 'Performance Optimization': 'Intermediate', 'SQL': 'Beginner' },
+    projects: [],
+    status: 'Open for Offers',
+    followedJobIds: ['job-3']
+  },
+  {
+    id: 'candidate-12',
+    name: 'Tom Bradley',
+    title: 'DevOps Lead',
+    bio: 'Led migration of a legacy monolith to 40+ containerized microservices. Expert in pipeline automation, secrets management, and release gating.',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
+    email: 'tom.b@example.com',
+    completedCourseIds: [],
+    skills: ['Docker', 'Kubernetes', 'CI/CD', 'Node.js', 'TypeScript', 'REST APIs'],
+    skillLevels: { 'Docker': 'Pro', 'Kubernetes': 'Intermediate', 'CI/CD': 'Pro', 'Node.js': 'Intermediate', 'TypeScript': 'Intermediate', 'REST APIs': 'Intermediate' },
+    projects: [{ id: 'p12-1', title: 'PipelineZero', description: 'Self-healing CI/CD pipeline with automatic rollback on error-rate threshold breach.', skills: ['CI/CD', 'Docker'] }],
+    status: 'Active',
+    followedJobIds: ['job-3']
+  },
+  {
+    id: 'candidate-13',
+    name: 'Daniel Lee',
+    title: 'Cloud Infrastructure Engineer',
+    bio: 'Certified Kubernetes administrator specializing in multi-cloud federation and cost optimization strategies for large engineering orgs.',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200',
+    email: 'daniel.l@example.com',
+    completedCourseIds: [],
+    skills: ['Kubernetes', 'CI/CD', 'Docker', 'SQL', 'Node.js', 'Scalability'],
+    skillLevels: { 'Kubernetes': 'Pro', 'CI/CD': 'Intermediate', 'Docker': 'Pro', 'SQL': 'Intermediate', 'Node.js': 'Beginner', 'Scalability': 'Intermediate' },
+    projects: [],
+    status: 'Open for Offers',
+    followedJobIds: ['job-3']
+  },
+
+  // job-4: Product Innovation Specialist (Linear Labs) — 11 more needed
+  {
+    id: 'candidate-14',
+    name: 'James Okafor',
+    title: 'Growth Product Manager',
+    bio: 'Drives self-serve product-led growth at B2B SaaS companies. Known for cutting activation time from 14 days to 48 hours through smart onboarding funnels.',
+    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&q=80&w=200',
+    email: 'james.o@example.com',
+    completedCourseIds: ['course-4'],
+    skills: ['PLG', 'A/B Testing', 'User Retention', 'Funnel Analytics'],
+    skillLevels: { 'PLG': 'Pro', 'A/B Testing': 'Pro', 'User Retention': 'Intermediate', 'Funnel Analytics': 'Intermediate' },
+    projects: [{ id: 'p14-1', title: 'ActivateIQ', description: 'In-app onboarding engine that adapts journey steps based on user persona segmentation.', skills: ['PLG', 'Funnel Analytics'] }],
+    status: 'Interviewing',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-15',
+    name: 'Nina Kowalski',
+    title: 'Product-Led Growth Strategist',
+    bio: 'Converted two enterprise tools into PLG-first products, reducing CAC by 40% within the first quarter of self-serve launch.',
+    avatar: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&q=80&w=200',
+    email: 'nina.k@example.com',
+    completedCourseIds: [],
+    skills: ['UX Research', 'Figma', 'Prototyping', 'User Interviews'],
+    skillLevels: { 'UX Research': 'Pro', 'Figma': 'Intermediate', 'Prototyping': 'Pro', 'User Interviews': 'Pro' },
+    projects: [],
+    status: 'Open for Offers',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-16',
+    name: 'Michael Torres',
+    title: 'Retention & Growth PM',
+    bio: 'Builds churn prediction models and personalised re-engagement workflows. Grew 90-day retention rates from 42% to 71% at a Series B startup.',
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200',
+    email: 'michael.t@example.com',
+    completedCourseIds: [],
+    skills: ['User Retention', 'A/B Testing', 'Funnel Analytics', 'PLG'],
+    skillLevels: { 'User Retention': 'Pro', 'A/B Testing': 'Pro', 'Funnel Analytics': 'Intermediate', 'PLG': 'Beginner' },
+    projects: [{ id: 'p16-1', title: 'RetainOS', description: 'Churn scoring pipeline using behavioural signals to trigger automated win-back campaigns.', skills: ['User Retention', 'Funnel Analytics'] }],
+    status: 'Active',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-17',
+    name: 'Alex Kim',
+    title: 'Experimentation Analyst',
+    bio: 'Runs hundreds of A/B tests annually across web and mobile surfaces. Expert at statistical significance, novelty effects, and experiment design.',
+    avatar: 'https://images.unsplash.com/photo-1548372290-8d01b6c8e78c?auto=format&fit=crop&q=80&w=200',
+    email: 'alex.k@example.com',
+    completedCourseIds: [],
+    skills: ['SQL', 'Tableau', 'Python', 'Data Visualization'],
+    skillLevels: { 'SQL': 'Pro', 'Tableau': 'Pro', 'Python': 'Intermediate', 'Data Visualization': 'Pro' },
+    projects: [],
+    status: 'Open for Offers',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-18',
+    name: 'Lisa Park',
+    title: 'Growth & Analytics Lead',
+    bio: 'Wired multi-touch attribution across paid and organic channels for a $200M ARR SaaS company. Turns data into acquisition playbooks.',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200',
+    email: 'lisa.p@example.com',
+    completedCourseIds: ['course-4'],
+    skills: ['Funnel Analytics', 'A/B Testing', 'PLG', 'User Retention'],
+    skillLevels: { 'Funnel Analytics': 'Pro', 'A/B Testing': 'Intermediate', 'PLG': 'Intermediate', 'User Retention': 'Pro' },
+    projects: [{ id: 'p18-1', title: 'FunnelLens', description: 'Attribution dashboard unifying paid, organic, and referral conversion touchpoints.', skills: ['Funnel Analytics', 'PLG'] }],
+    status: 'Interviewing',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-19',
+    name: 'Maria Santos',
+    title: 'Product Growth Manager',
+    bio: 'Designed viral referral loops and in-app upgrade prompts that drove 3x expansion revenue for a developer tooling startup.',
+    avatar: 'https://images.unsplash.com/photo-1598550874175-4d0ef436c909?auto=format&fit=crop&q=80&w=200',
+    email: 'maria.s@example.com',
+    completedCourseIds: [],
+    skills: ['Copywriting', 'SEO', 'Content Strategy', 'Social Media'],
+    skillLevels: { 'Copywriting': 'Pro', 'SEO': 'Pro', 'Content Strategy': 'Intermediate', 'Social Media': 'Intermediate' },
+    projects: [],
+    status: 'Active',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-20',
+    name: 'Emma Wilson',
+    title: 'Customer Success Manager',
+    bio: 'Dedicated to ensuring clients achieve their goals. Handles enterprise accounts and conducts quarterly business reviews to drive renewals and upsells.',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+    email: 'emma.w@example.com',
+    completedCourseIds: [],
+    skills: ['Zendesk', 'Customer Success', 'Onboarding', 'Account Management'],
+    skillLevels: { 'Zendesk': 'Pro', 'Customer Success': 'Pro', 'Onboarding': 'Intermediate', 'Account Management': 'Beginner' },
+    projects: [],
+    status: 'Open for Offers',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-21',
+    name: 'Rachel Green',
+    title: 'Visual Designer',
+    bio: 'Specializes in creating stunning brand identities, marketing assets, and social media graphics that capture attention and drive engagement.',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
+    email: 'rachel.g@example.com',
+    completedCourseIds: [],
+    skills: ['Adobe Creative Suite', 'Illustrator', 'Branding', 'Typography'],
+    skillLevels: { 'Adobe Creative Suite': 'Pro', 'Illustrator': 'Pro', 'Branding': 'Intermediate', 'Typography': 'Intermediate' },
+    projects: [{ id: 'p21-1', title: 'BrandRevive', description: 'Complete brand overhaul and visual identity refresh for a series B fintech startup.', skills: ['Branding', 'Illustrator'] }],
+    status: 'Active',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-22',
+    name: 'Ben Carter',
+    title: 'Account Executive',
+    bio: 'Top-performing sales closer with a track record of exceeding $1M quotas. Expert at navigating complex enterprise procurement processes.',
+    avatar: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?auto=format&fit=crop&q=80&w=200',
+    email: 'ben.c@example.com',
+    completedCourseIds: [],
+    skills: ['B2B Sales', 'Salesforce', 'Negotiation', 'Cold Calling'],
+    skillLevels: { 'B2B Sales': 'Pro', 'Salesforce': 'Pro', 'Negotiation': 'Intermediate', 'Cold Calling': 'Beginner' },
+    projects: [],
+    status: 'Open for Offers',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-23',
+    name: 'Olivia Brooks',
+    title: 'Operations Manager',
+    bio: 'Streamlines internal processes and supply chains. Focused on resource allocation, vendor negotiation, and reducing operational bloat.',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200',
+    email: 'olivia.b@example.com',
+    completedCourseIds: [],
+    skills: ['Operations', 'Supply Chain', 'Vendor Management', 'Logistics'],
+    skillLevels: { 'Operations': 'Pro', 'Supply Chain': 'Intermediate', 'Vendor Management': 'Intermediate', 'Logistics': 'Pro' },
+    projects: [{ id: 'p23-1', title: 'LeanOps', description: 'Implemented a lean inventory system that reduced overhead costs by 15% across three warehouses.', skills: ['Operations', 'Logistics'] }],
+    status: 'Interviewing',
+    followedJobIds: ['job-4']
+  },
+  {
+    id: 'candidate-24',
+    name: 'Zoe Nguyen',
+    title: 'HR & Talent Partner',
+    bio: 'Builds culture and scales teams. Specialized in talent acquisition, employee relations, and crafting competitive compensation packages.',
+    avatar: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&q=80&w=200',
+    email: 'zoe.n@example.com',
+    completedCourseIds: [],
+    skills: ['Talent Acquisition', 'Employee Relations', 'HRIS', 'Interviewing'],
+    skillLevels: { 'Talent Acquisition': 'Pro', 'Employee Relations': 'Pro', 'HRIS': 'Intermediate', 'Interviewing': 'Beginner' },
+    projects: [],
+    status: 'Active',
+    followedJobIds: ['job-4']
   }
 ];
 
@@ -354,7 +657,7 @@ export const INITIAL_JOBS: Job[] = [
     type: 'Full-time',
     location: 'Remote (US/Canada)',
     datePosted: '2 days ago',
-    applicantsCount: 4
+    applicantsCount: 4  // user-0, candidate-1 (Meera), candidate-2 (Marcus), candidate-4 (Elena)
   },
   {
     id: 'job-2',
@@ -389,7 +692,7 @@ export const INITIAL_JOBS: Job[] = [
     type: 'Full-time',
     location: 'New York, NY (Hybrid)',
     datePosted: 'Just now',
-    applicantsCount: 0
+    applicantsCount: 3  // user-0, candidate-2 (Marcus), candidate-5 (Carlos)
   },
   {
     id: 'job-3',
@@ -424,7 +727,7 @@ export const INITIAL_JOBS: Job[] = [
     type: 'Full-time',
     location: 'Remote',
     datePosted: '3 days ago',
-    applicantsCount: 9
+    applicantsCount: 9  // candidate-1 (Meera) + candidates 6–13
   },
   {
     id: 'job-4',
@@ -442,7 +745,7 @@ export const INITIAL_JOBS: Job[] = [
     type: 'Contract',
     location: 'San Francisco, CA',
     datePosted: '5 days ago',
-    applicantsCount: 12
+    applicantsCount: 12  // candidate-3 (Sarah) + candidates 14–24
   }
 ];
 

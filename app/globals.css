@@ -55,3 +55,36 @@ body {
 .animate-slideUp {
   animation: slideUp 0.5s ease-out both;
 }
+
+/* Tinder-style card swipe animations */
+@keyframes swipeLeft {
+  to {
+    opacity: 0;
+    transform: translateX(-130%) rotate(-18deg);
+  }
+}
+@keyframes swipeRight {
+  to {
+    opacity: 0;
+    transform: translateX(130%) rotate(18deg);
+  }
+}
+@keyframes swipeUp {
+  to {
+    opacity: 0;
+    transform: translateY(-120%) rotate(8deg);
+  }
+}
+
+.animate-swipe-left {
+  animation: swipeLeft 0.38s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  pointer-events: none;
+}
+.animate-swipe-right {
+  animation: swipeRight 0.38s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  pointer-events: none;
+}
+.animate-swipe-up {
+  animation: swipeUp 0.38s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  pointer-events: none;
+}

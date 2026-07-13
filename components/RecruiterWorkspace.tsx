@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Building2, 
@@ -17,7 +18,14 @@ import {
   Flame, 
   Briefcase,
   CheckCircle2,
-  X 
+  X,
+  ThumbsDown,
+  ThumbsUp,
+  SkipForward,
+  ArrowLeft,
+  LayoutList,
+  Layers,
+  GripVertical
 } from 'lucide-react';
 import { Candidate, Course, Job, CourseRequest } from '@/lib/types';
 import { SKILL_TREES, getPathConnections, renderSkillIcon } from './CandidateWorkspace';
@@ -74,6 +82,102 @@ export default function RecruiterWorkspace({
   const [focusedCandidate, setFocusedCandidate] = useState<Candidate | null>(null);
   const [assessAgainstJob, setAssessAgainstJob] = useState<string>(jobs[0]?.id || '');
 
+  // ── NEW: Job Detail View (My Jobs → click job card) ──────────────────────
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [jobDetailTab, setJobDetailTab] = useState<'applicants' | 'syllabus'>('applicants');
+
+  // ── NEW: Tinder deck state ────────────────────────────────────────────────
+  type SwipeDir = 'left' | 'right' | 'up' | null;
+  const [swipeDir, setSwipeDir] = useState<SwipeDir>(null);
+
+  const [tinderStates, setTinderStates] = useState<Record<string, {
+    deckIndex: number;
+    shortlisted: string[];
+    rejected: string[];
+    skipped: string[];
+    deckView: 'stack' | 'list';
+    deckDone: boolean;
+  }>>({});
+
+  const activeTinderState = selectedJob ? (tinderStates[selectedJob.id] || {
+    deckIndex: 0,
+    shortlisted: [],
+    rejected: [],
+    skipped: [],
+    deckView: 'stack',
+    deckDone: false
+  }) : { deckIndex: 0, shortlisted: [], rejected: [], skipped: [], deckView: 'stack' as const, deckDone: false };
+
+  const deckIndex = activeTinderState.deckIndex;
+  const shortlisted = activeTinderState.shortlisted;
+  const rejected = activeTinderState.rejected;
+  const skipped = activeTinderState.skipped;
+  const deckView = activeTinderState.deckView;
+  const deckDone = activeTinderState.deckDone;
+
+  const selectedJobIdRef = useRef<string | null>(null);
+  selectedJobIdRef.current = selectedJob?.id || null;
+
+  const updateTinderState = useCallback((jobId: string, updates: Partial<typeof activeTinderState> | ((prev: typeof activeTinderState) => Partial<typeof activeTinderState>)) => {
+    setTinderStates(prev => {
+      const current = prev[jobId] || { deckIndex: 0, shortlisted: [], rejected: [], skipped: [], deckView: 'stack', deckDone: false };
+      const newValues = typeof updates === 'function' ? updates(current) : updates;
+      return { ...prev, [jobId]: { ...current, ...newValues } };
+    });
+  }, []);
+
+  const setDeckIndex = useCallback((val: number | ((prev: number) => number)) => {
+    const id = selectedJobIdRef.current;
+    if (!id) return;
+    updateTinderState(id, prev => ({ deckIndex: typeof val === 'function' ? val(prev.deckIndex) : val }));
+  }, [updateTinderState]);
+
+  const setShortlisted = useCallback((val: string[] | ((prev: string[]) => string[])) => {
+    const id = selectedJobIdRef.current;
+    if (!id) return;
+    updateTinderState(id, prev => ({ shortlisted: typeof val === 'function' ? val(prev.shortlisted) : val }));
+  }, [updateTinderState]);
+
+  const setRejected = useCallback((val: string[] | ((prev: string[]) => string[])) => {
+    const id = selectedJobIdRef.current;
+    if (!id) return;
+    updateTinderState(id, prev => ({ rejected: typeof val === 'function' ? val(prev.rejected) : val }));
+  }, [updateTinderState]);
+
+  const setSkipped = useCallback((val: string[] | ((prev: string[]) => string[])) => {
+    const id = selectedJobIdRef.current;
+    if (!id) return;
+    updateTinderState(id, prev => ({ skipped: typeof val === 'function' ? val(prev.skipped) : val }));
+  }, [updateTinderState]);
+
+  const setDeckView = useCallback((val: 'stack' | 'list' | ((prev: 'stack' | 'list') => 'stack' | 'list')) => {
+    const id = selectedJobIdRef.current;
+    if (!id) return;
+    updateTinderState(id, prev => ({ deckView: typeof val === 'function' ? val(prev.deckView) : val }));
+  }, [updateTinderState]);
+
+  const setDeckDone = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
+    const id = selectedJobIdRef.current;
+    if (!id) return;
+    updateTinderState(id, prev => ({ deckDone: typeof val === 'function' ? val(prev.deckDone) : val }));
+  }, [updateTinderState]);
+
+  // Touch swipe tracking
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+
+  // ── NEW: Drag-and-drop state (Talent Market) ──────────────────────────────
+  const [draggedCandidateId, setDraggedCandidateId] = useState<string | null>(null);
+  const [basketsOpen, setBasketsOpen] = useState(false);
+  const [dragOverBasket, setDragOverBasket] = useState<string | null>(null);
+  const [sourcedMap, setSourcedMap] = useState<Record<string, string[]>>({}); // jobId → candidateIds[]
+  const [toast, setToast] = useState<string | null>(null);
+
+  // Reset swipe dir when job changes
+  useEffect(() => {
+    setSwipeDir(null);
+  }, [selectedJob]);
+
   useEffect(() => {
     if (initialFocusedCandidate) {
       setFocusedCandidate(initialFocusedCandidate);
@@ -96,6 +200,148 @@ export default function RecruiterWorkspace({
     const skillMatch = selectedSkillFilter === 'All' || cand.skills.includes(selectedSkillFilter);
     return nameMatch && skillMatch;
   });
+
+  // ── NEW HELPERS ───────────────────────────────────────────────────────────
+  const getFitScore = useCallback((cand: Candidate, job: Job) => {
+    if (!job.skillsNeeded.length) return 100;
+    const matches = job.skillsNeeded.filter(s => cand.skills.includes(s)).length;
+    return Math.round((matches / job.skillsNeeded.length) * 100);
+  }, []);
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  // Tinder: advance the deck (uses applicantsForJob length, computed below via useMemo equivalent)
+  const advanceDeck = useCallback((dir: 'left' | 'right' | 'up', candidateId: string, poolSize: number) => {
+    setSwipeDir(dir);
+    setTimeout(() => {
+      if (dir === 'right') {
+        setShortlisted(prev => [...prev, candidateId]);
+        setSkipped(prev => prev.filter(id => id !== candidateId));
+      } else if (dir === 'left') {
+        setRejected(prev => [...prev, candidateId]);
+        setSkipped(prev => prev.filter(id => id !== candidateId));
+      } else {
+        setSkipped(prev => prev.includes(candidateId) ? [...prev.filter(id => id !== candidateId), candidateId] : [...prev, candidateId]);
+      }
+      setSwipeDir(null);
+    }, 380);
+  }, [setShortlisted, setRejected, setSkipped]);
+
+  // Keyboard hotkeys for tinder deck
+  useEffect(() => {
+    if (activeTab !== 'my-jobs' || !selectedJob || jobDetailTab !== 'applicants' || deckView !== 'stack') return;
+    const sourcedIds = sourcedMap[selectedJob.id] || [];
+    const applicants = candidates.filter(c => c.followedJobIds?.includes(selectedJob.id) && !sourcedIds.includes(c.id));
+    const freshCandidates = applicants.filter(c => !shortlisted.includes(c.id) && !rejected.includes(c.id) && !skipped.includes(c.id));
+    const skippedCandidates = skipped
+      .map(id => applicants.find(c => c.id === id))
+      .filter(c => c !== undefined) as typeof applicants;
+    const unevaluated = [...freshCandidates, ...skippedCandidates];
+    if (unevaluated.length === 0) return;
+
+    const handler = (e: KeyboardEvent) => {
+      const card = unevaluated[0];
+      if (!card) return;
+      if (e.key === 'ArrowLeft')  advanceDeck('left', card.id, applicants.length);
+      if (e.key === 'ArrowRight') advanceDeck('right', card.id, applicants.length);
+      if (e.key === 'ArrowUp')    advanceDeck('up', card.id, applicants.length);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [activeTab, selectedJob, jobDetailTab, deckView, shortlisted, rejected, skipped, sourcedMap, candidates, advanceDeck]);
+
+  // Drag-and-drop handlers
+  const handleDragStart = (e: React.DragEvent, candId: string) => {
+    setDraggedCandidateId(candId);
+    setBasketsOpen(true);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const handleDragEnd = () => {
+    setDraggedCandidateId(null);
+    setBasketsOpen(false);
+    setDragOverBasket(null);
+  };
+  const handleDropOnBasket = (jobId: string) => {
+    if (!draggedCandidateId) return;
+    const cand = candidates.find(c => c.id === draggedCandidateId);
+    const job = jobs.find(j => j.id === jobId);
+    if (!cand || !job) return;
+    // Add to sourced map
+    setSourcedMap(prev => ({
+      ...prev,
+      [jobId]: Array.from(new Set([...(prev[jobId] || []), draggedCandidateId]))
+    }));
+    showToast(`✅ ${cand.name} sourced & shortlisted for "${job.title}"`);
+    setDraggedCandidateId(null);
+    setBasketsOpen(false);
+    setDragOverBasket(null);
+  };
+
+  // Global scroll wheel hijack & edge-scrolling while dragging
+  useEffect(() => {
+    if (!draggedCandidateId) return;
+    const panel = document.getElementById('job-baskets-panel');
+    if (!panel) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Hijack the scroll wheel to scroll the baskets panel
+      e.preventDefault();
+      e.stopPropagation();
+      const scrollAmt = e.deltaY > 0 ? 80 : e.deltaY < 0 ? -80 : 0;
+      panel.scrollTop += scrollAmt;
+    };
+
+    let animationFrameId: number;
+    let currentSpeed = 0;
+
+    const scrollLoop = () => {
+      if (currentSpeed !== 0) {
+        panel.scrollTop += currentSpeed * 25;
+      }
+      animationFrameId = requestAnimationFrame(scrollLoop);
+    };
+    
+    // Start the physics loop
+    animationFrameId = requestAnimationFrame(scrollLoop);
+
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault(); // Necessary to allow dropping globally
+      const y = e.clientY;
+      const height = window.innerHeight;
+      
+      // Calculate velocity based on proximity to top/bottom 20% of screen
+      if (y < height * 0.20) {
+        // Easing curve for smooth acceleration
+        currentSpeed = -Math.pow((height * 0.20 - y) / (height * 0.20), 1.5);
+      } else if (y > height * 0.80) {
+        currentSpeed = Math.pow((y - height * 0.80) / (height * 0.20), 1.5);
+      } else {
+        currentSpeed = 0;
+      }
+    };
+
+    const handleDragEnd = () => {
+      currentSpeed = 0;
+      cancelAnimationFrame(animationFrameId);
+    };
+
+    // Use capture phase on document to intercept before native browser engine
+    document.addEventListener('wheel', handleWheel, { passive: false, capture: true });
+    document.addEventListener('dragover', handleDragOver, { capture: true });
+    document.addEventListener('dragend', handleDragEnd);
+    document.addEventListener('drop', handleDragEnd);
+
+    return () => {
+      document.removeEventListener('wheel', handleWheel, { capture: true });
+      document.removeEventListener('dragover', handleDragOver, { capture: true });
+      document.removeEventListener('dragend', handleDragEnd);
+      document.removeEventListener('drop', handleDragEnd);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [draggedCandidateId]);
 
   const handlePostJobSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,7 +406,7 @@ export default function RecruiterWorkspace({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 gap-4" id="recruiter-subnav">
           <div>
             <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight flex flex-col sm:flex-row items-start sm:items-center gap-2">
-              <span>Recruitment Command Center</span>
+              <span>Talent Marketplace</span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-indigo-600 text-white font-mono uppercase tracking-wider">
                 Talent Pipeline active
               </span>
@@ -228,15 +474,26 @@ export default function RecruiterWorkspace({
             </div>
           </div>
 
-          {/* Candidates Feed */}
+          {/* Candidates Feed — draggable for job basket sourcing */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="candidates-grid">
             {filteredCandidates.map(cand => (
               <div 
                 key={cand.id} 
                 id={`candidate-card-${cand.id}`}
-                className={`bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-200 p-6 flex flex-col justify-between ${
+                draggable
+                onMouseDown={() => {
+                  setDraggedCandidateId(cand.id);
+                  setBasketsOpen(true);
+                }}
+                onMouseUp={() => {
+                  setDraggedCandidateId(null);
+                  setBasketsOpen(false);
+                }}
+                onDragStart={(e) => handleDragStart(e, cand.id)}
+                onDragEnd={handleDragEnd}
+                className={`group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col justify-between cursor-grab active:cursor-grabbing ${
                   cand.isCurrentUser ? 'ring-2 ring-indigo-500/40 bg-indigo-50/10' : ''
-                }`}
+                } ${draggedCandidateId === cand.id ? 'opacity-50 scale-95' : ''}`}
               >
                 <div>
                   {/* Candidate Identification Header */}
@@ -259,8 +516,7 @@ export default function RecruiterWorkspace({
                         <p className="text-xs text-slate-500 font-semibold">{cand.title}</p>
                       </div>
                     </div>
-
-                    <div className="text-right">
+                    <div className="flex items-center gap-3 text-right">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight border ${
                         cand.status === 'Open for Offers' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                         cand.status === 'Interviewing' ? 'bg-amber-50 text-amber-700 border-amber-100' :
@@ -268,6 +524,9 @@ export default function RecruiterWorkspace({
                       }`}>
                         {cand.status}
                       </span>
+                      <div className="text-slate-300 group-hover:text-indigo-500 transition-colors p-1 bg-slate-50 group-hover:bg-indigo-50 rounded-md" title="Drag to source">
+                        <GripVertical className="w-4 h-4" />
+                      </div>
                     </div>
                   </div>
 
@@ -337,9 +596,85 @@ export default function RecruiterWorkspace({
                     Email
                   </a>
                 </div>
+                {/* Drag hint */}
+                <p className="text-[10px] text-slate-400 text-center mt-2 flex items-center justify-center gap-1">
+                  <GripVertical className="w-3 h-3" /> Drag to a job basket to source
+                </p>
               </div>
             ))}
           </div>
+
+          {/* ── Job Baskets — fixed, Framer Motion spring slide ── */}
+          {typeof document !== 'undefined' && createPortal(
+            <motion.div
+              id="job-baskets-panel"
+              initial={{ x: 340, y: '-50%', opacity: 0 }}
+              animate={{ 
+                x: basketsOpen ? 0 : 340, 
+                y: '-50%',
+                opacity: basketsOpen ? 1 : 0 
+              }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              style={{
+                position: 'fixed',
+                top: '50%',
+                right: '24px',
+                width: '260px',
+                zIndex: 9999,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '12px',
+              }}
+            >
+              <div className="bg-slate-900 text-white text-[10px] font-mono font-bold uppercase tracking-wider px-3 py-2 rounded-xl text-center shadow-lg">
+                🎯 Drop into a Job Basket
+              </div>
+              {(() => {
+                const dragged = candidates.find(c => c.id === draggedCandidateId);
+                const sortedJobs = [...jobs].sort((a, b) => {
+                  if (!dragged) return 0;
+                  return getFitScore(dragged, b) - getFitScore(dragged, a);
+                });
+                return sortedJobs.map(j => {
+                  const fit = dragged ? getFitScore(dragged, j) : 0;
+                  const already = (sourcedMap[j.id] || []).includes(draggedCandidateId || '');
+                const isOver = dragOverBasket === j.id;
+                const glowColor =
+                  fit >= 75 ? 'border-emerald-400 bg-emerald-50 shadow-emerald-100' :
+                  fit >= 40 ? 'border-amber-400 bg-amber-50 shadow-amber-100' :
+                              'border-rose-300 bg-rose-50 shadow-rose-100';
+                const badgeColor =
+                  fit >= 75 ? 'bg-emerald-500' :
+                  fit >= 40 ? 'bg-amber-500' :
+                              'bg-rose-500';
+                return (
+                  <div
+                    key={j.id}
+                    id={`basket-${j.id}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverBasket(j.id); }}
+                    onDragLeave={() => setDragOverBasket(null)}
+                    onDrop={(e) => { e.preventDefault(); handleDropOnBasket(j.id); }}
+                    className={`border-2 rounded-xl p-4 transition-all duration-150 shadow-md cursor-copy ${
+                      isOver ? 'scale-105 shadow-xl ' + glowColor : 'border-slate-200 bg-white'
+                    } ${already ? 'opacity-40' : ''}`}
+                  >
+                    <p className="text-sm font-bold text-slate-800 leading-tight">{j.title}</p>
+                    <p className="text-[10px] text-slate-500">{j.company}</p>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className={`text-white text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeColor}`}>
+                        {fit}% fit
+                      </span>
+                      {already && <span className="text-[10px] text-slate-400 font-semibold">✓ Sourced</span>}
+                    </div>
+                  </div>
+                );
+              })})()}
+            </motion.div>,
+            document.body
+          )}
         </div>
       )}
 
@@ -656,18 +991,431 @@ export default function RecruiterWorkspace({
 
       {activeTab === 'my-jobs' && (
         <div className="space-y-6 animate-fadeIn font-sans" id="tab-panels-my-jobs">
+
+          {/* ── Job Detail View (when a job card is clicked) ── */}
+          <AnimatePresence>
+            {selectedJob && (
+              <motion.div
+                key={selectedJob.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                className="bg-white rounded-2xl border border-slate-100 shadow-md"
+                id="job-detail-view"
+              >
+                {/* Detail header */}
+                <div className="flex items-center justify-between p-5 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setSelectedJob(null)}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+                      aria-label="Back to jobs"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-base">{selectedJob.logo || '💼'}</span>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-sm">{selectedJob.title}</h3>
+                      <p className="text-[11px] text-slate-500">{selectedJob.company} • {selectedJob.type} • {selectedJob.location}</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-mono font-bold rounded-full border border-indigo-100">
+                    {selectedJob.applicantsCount} Applicants
+                  </span>
+                </div>
+
+                {/* Detail tab bar */}
+                <div className="flex border-b border-slate-100 px-5">
+                  {(['applicants', 'syllabus'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setJobDetailTab(tab)}
+                      className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors ${
+                        jobDetailTab === tab
+                          ? 'border-indigo-600 text-indigo-600'
+                          : 'border-transparent text-slate-400 hover:text-slate-600'
+                      }`}
+                    >
+                      {tab === 'applicants' ? 'Applicants & Sourcing' : 'Syllabus Path Editor'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* ── TAB 1: Applicants & Sourcing ── */}
+                {jobDetailTab === 'applicants' && (
+                  <div className="p-5" id="job-detail-applicants">
+                    {/* Sourced by You strip */}
+                    {(sourcedMap[selectedJob.id] || []).length > 0 && (
+                      <div className="mb-5 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                        <p className="text-[10px] font-mono font-bold text-emerald-700 uppercase tracking-wider mb-2">✦ Sourced by You ({(sourcedMap[selectedJob.id] || []).length})</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(sourcedMap[selectedJob.id] || []).map(cid => {
+                            const c = candidates.find(x => x.id === cid);
+                            if (!c) return null;
+                            return (
+                              <div key={cid} className="flex items-center gap-1.5 bg-white border border-emerald-100 rounded-lg px-2 py-1 group">
+                                <img src={c.avatar} alt={c.name} className="w-5 h-5 rounded-full object-cover" />
+                                <span className="text-xs font-semibold text-slate-800">{c.name}</span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                  getFitScore(c, selectedJob) >= 75 ? 'bg-emerald-100 text-emerald-700' :
+                                  getFitScore(c, selectedJob) >= 40 ? 'bg-amber-100 text-amber-700' :
+                                                                      'bg-rose-100 text-rose-700'
+                                }`}>{getFitScore(c, selectedJob)}%</span>
+                                <button
+                                  onClick={() => setSourcedMap(prev => ({
+                                    ...prev,
+                                    [selectedJob.id]: (prev[selectedJob.id] || []).filter(id => id !== cid)
+                                  }))}
+                                  className="w-4 h-4 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                                  title="Remove from sourced"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {/* View toggle */}
+                    {(() => {
+                      // Candidates who applied to this specific job and are NOT sourced
+                      const sourcedIds = sourcedMap[selectedJob.id] || [];
+                      const applicantsForJob = candidates.filter(c =>
+                        c.followedJobIds?.includes(selectedJob.id) && !sourcedIds.includes(c.id)
+                      );
+                      const freshCandidates = applicantsForJob.filter(c => 
+                        !shortlisted.includes(c.id) && !rejected.includes(c.id) && !skipped.includes(c.id)
+                      );
+                      const skippedCandidates = skipped
+                        .map(id => applicantsForJob.find(c => c.id === id))
+                        .filter(c => c !== undefined) as typeof applicantsForJob;
+                      const unevaluatedCandidates = [...freshCandidates, ...skippedCandidates];
+                      return (
+                      <>
+                    <div className="flex items-center justify-between mb-5">
+                      <p className="text-xs text-slate-500">
+                        <span className="font-bold text-slate-800">{applicantsForJob.length}</span> applicants for this role
+                      </p>
+                      <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-bold">
+                        <button
+                          onClick={() => setDeckView('stack')}
+                          className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${
+                            deckView === 'stack' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          <Layers className="w-3.5 h-3.5" /> Stack View
+                        </button>
+                        <button
+                          onClick={() => setDeckView('list')}
+                          className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors border-l border-slate-200 ${
+                            deckView === 'list' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                          <LayoutList className="w-3.5 h-3.5" /> List View
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* STACK VIEW & LIST VIEW cross-fade container */}
+                    <AnimatePresence mode="wait">
+                      {deckView === 'stack' && (
+                        <motion.div 
+                          key="stack"
+                          initial={{ opacity: 0, y: 15 }} 
+                          animate={{ opacity: 1, y: 0 }} 
+                          exit={{ opacity: 0, y: -15 }} 
+                          transition={{ duration: 0.2 }}
+                          className="flex flex-col items-center"
+                        >
+                        {applicantsForJob.length === 0 ? (
+                          <div className="text-center py-10 space-y-3">
+                            <div className="text-4xl">📭</div>
+                            <h4 className="font-bold text-slate-900 text-sm">No applicants yet</h4>
+                            <p className="text-xs text-slate-500 max-w-xs">
+                              No one has applied to this role yet. Head to the <strong>Talent Market</strong> tab to source candidates directly.
+                            </p>
+                          </div>
+                        ) : unevaluatedCandidates.length === 0 ? (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="text-center py-10 space-y-4"
+                          >
+                            <div className="text-5xl">🎉</div>
+                            <h4 className="font-bold text-slate-900 text-base">All applicants reviewed!</h4>
+                            <p className="text-sm text-slate-500">
+                              You reviewed <strong>{applicantsForJob.length}</strong> applicants —
+                              <span className="text-emerald-600 font-bold"> {shortlisted.length} shortlisted</span> and 
+                              <span className="text-rose-600 font-bold"> {rejected.length} rejected</span>.
+                            </p>
+                            <div className="flex gap-2 justify-center">
+                              <button
+                                onClick={() => { setShortlisted([]); setRejected([]); setSkipped([]); }}
+                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-colors"
+                              >
+                                Restart Deck
+                              </button>
+                              <button
+                                onClick={() => setDeckView('list')}
+                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-xs font-bold text-white transition-colors"
+                              >
+                                View Shortlisted List
+                              </button>
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <>
+                            <p className="text-[10px] text-slate-400 mb-4 font-mono">
+                              ← Reject &nbsp;|&nbsp; ↑ Skip &nbsp;|&nbsp; → Shortlist &nbsp;(keyboard hotkeys)
+                            </p>
+                            <div className="relative w-full max-w-sm" style={{ height: '340px' }}>
+                              {[2, 1].map(offset => {
+                                const ghost = unevaluatedCandidates[offset];
+                                if (!ghost) return null;
+                                return (
+                                  <div
+                                    key={ghost.id}
+                                    className="absolute inset-x-0 bg-white border border-slate-100 rounded-2xl shadow-sm"
+                                    style={{
+                                      top: `${offset * 8}px`,
+                                      left: `${offset * 6}px`,
+                                      right: `${offset * 6}px`,
+                                      bottom: 0,
+                                      zIndex: 10 - offset,
+                                      transform: `scale(${1 - offset * 0.025})`
+                                    }}
+                                  />
+                                );
+                              })}
+                              {(() => {
+                                const card = unevaluatedCandidates[0];
+                                if (!card) return null;
+                                const fit = getFitScore(card, selectedJob);
+                                const swipeClass =
+                                  swipeDir === 'left'  ? 'animate-swipe-left'  :
+                                  swipeDir === 'right' ? 'animate-swipe-right' :
+                                  swipeDir === 'up'    ? 'animate-swipe-up'    : '';
+                                return (
+                                  <motion.div
+                                    key={card.id}
+                                    className={`absolute inset-0 bg-white border border-slate-200 rounded-2xl shadow-md p-5 flex flex-col z-20 select-none ${swipeClass}`}
+                                    onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; touchStartY.current = e.touches[0].clientY; }}
+                                    onTouchEnd={(e) => {
+                                      const dx = e.changedTouches[0].clientX - touchStartX.current;
+                                      const dy = e.changedTouches[0].clientY - touchStartY.current;
+                                      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+                                        advanceDeck(dx < 0 ? 'left' : 'right', card.id, applicantsForJob.length);
+                                      } else if (dy < -60) {
+                                        advanceDeck('up', card.id, applicantsForJob.length);
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <img src={card.avatar} alt={card.name} className="w-14 h-14 rounded-xl object-cover ring-2 ring-slate-100" />
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-slate-900 text-sm">{card.name}</h4>
+                                        <p className="text-xs text-slate-500">{card.title}</p>
+                                        <div className="mt-1">
+                                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                            fit >= 75 ? 'bg-emerald-100 text-emerald-700' :
+                                            fit >= 40 ? 'bg-amber-100 text-amber-700' :
+                                                       'bg-rose-100 text-rose-700'
+                                          }`}>{fit}% fit</span>
+                                        </div>
+                                      </div>
+                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                        card.status === 'Open for Offers' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                        card.status === 'Interviewing' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                        'bg-slate-50 text-slate-600 border-slate-100'
+                                      }`}>{card.status}</span>
+                                    </div>
+                                    <p className="text-xs text-slate-600 mt-3 leading-relaxed italic flex-1 overflow-hidden line-clamp-3">"{card.bio}"</p>
+                                    <div className="mt-3 space-y-1">
+                                      <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Verified Skills
+                                      </p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {card.skills.slice(0, 5).map(s => (
+                                          <span key={s} className="px-1.5 py-0.5 bg-emerald-50 border border-emerald-100 rounded text-[10px] font-semibold text-emerald-800 flex items-center gap-0.5">
+                                            <Check className="w-2.5 h-2.5" /> {s}
+                                          </span>
+                                        ))}
+                                        {card.skills.length > 5 && <span className="text-[10px] text-slate-400">+{card.skills.length - 5} more</span>}
+                                      </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 text-center mt-2">
+                                      {applicantsForJob.length - unevaluatedCandidates.length + 1} / {applicantsForJob.length}
+                                    </p>
+                                  </motion.div>
+                                );
+                              })()}
+                            </div>
+                            <div className="flex items-center gap-4 mt-6">
+                              <button
+                                id="tinder-reject-btn"
+                                onClick={() => { const c = unevaluatedCandidates[0]; if(c) advanceDeck('left', c.id, applicantsForJob.length); }}
+                                className="flex flex-col items-center gap-1 group"
+                              >
+                                <span className="w-14 h-14 rounded-full bg-rose-50 hover:bg-rose-100 border-2 border-rose-200 flex items-center justify-center transition-all group-hover:scale-110 shadow-sm">
+                                  <ThumbsDown className="w-6 h-6 text-rose-500" />
+                                </span>
+                                <span className="text-[10px] text-rose-500 font-bold">Reject</span>
+                              </button>
+                              <button
+                                id="tinder-skip-btn"
+                                onClick={() => { const c = unevaluatedCandidates[0]; if(c) advanceDeck('up', c.id, applicantsForJob.length); }}
+                                className="flex flex-col items-center gap-1 group"
+                              >
+                                <span className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 border-2 border-slate-200 flex items-center justify-center transition-all group-hover:scale-110 shadow-sm">
+                                  <SkipForward className="w-5 h-5 text-slate-500" />
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-bold">Skip</span>
+                              </button>
+                              <button
+                                id="tinder-shortlist-btn"
+                                onClick={() => { const c = unevaluatedCandidates[0]; if(c) advanceDeck('right', c.id, applicantsForJob.length); }}
+                                className="flex flex-col items-center gap-1 group"
+                              >
+                                <span className="w-14 h-14 rounded-full bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-200 flex items-center justify-center transition-all group-hover:scale-110 shadow-sm">
+                                  <ThumbsUp className="w-6 h-6 text-emerald-500" />
+                                </span>
+                                <span className="text-[10px] text-emerald-600 font-bold">Shortlist</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
+                        </motion.div>
+                      )}
+
+                      {/* LIST VIEW — applicants + sourced */}
+                      {deckView === 'list' && (
+                        <motion.div 
+                          key="list"
+                          initial={{ opacity: 0, y: 15 }} 
+                          animate={{ opacity: 1, y: 0 }} 
+                          exit={{ opacity: 0, y: -15 }} 
+                          transition={{ duration: 0.2 }}
+                          className="space-y-2" id="applicants-list-view"
+                        >
+                        {applicantsForJob.length === 0 && (sourcedMap[selectedJob.id] || []).length === 0 && (
+                          <p className="text-xs text-slate-400 text-center py-6">No applicants or sourced candidates yet.</p>
+                        )}
+                        {applicantsForJob.map(c => {
+                          const fit = getFitScore(c, selectedJob);
+                          const isShortlisted = shortlisted.includes(c.id);
+                          const isRejected = rejected.includes(c.id);
+                          const isSkipped = skipped.includes(c.id);
+                          return (
+                            <div key={c.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                              isShortlisted ? 'bg-emerald-50 border-emerald-200' :
+                              isRejected    ? 'bg-rose-50 border-rose-200 opacity-60' :
+                              isSkipped     ? 'bg-slate-50 border-slate-200 opacity-80' :
+                                              'bg-white border-slate-100'
+                            }`}>
+                              <img src={c.avatar} alt={c.name} className="w-9 h-9 rounded-lg object-cover" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-slate-900 text-xs">{c.name}</p>
+                                <p className="text-[10px] text-slate-500">{c.title}</p>
+                              </div>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                fit >= 75 ? 'bg-emerald-100 text-emerald-700' :
+                                fit >= 40 ? 'bg-amber-100 text-amber-700' :
+                                           'bg-rose-100 text-rose-700'
+                              }`}>{fit}% fit</span>
+                              {isShortlisted && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-emerald-600">✓ Shortlisted</span>
+                                  <button 
+                                    onClick={() => setShortlisted(prev => prev.filter(id => id !== c.id))} 
+                                    className="text-[10px] text-slate-400 hover:text-slate-600 underline font-semibold transition-colors"
+                                  >
+                                    Undo
+                                  </button>
+                                </div>
+                              )}
+                              {isRejected && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-rose-500">✕ Rejected</span>
+                                  <button 
+                                    onClick={() => setRejected(prev => prev.filter(id => id !== c.id))} 
+                                    className="text-[10px] text-slate-400 hover:text-slate-600 underline font-semibold transition-colors"
+                                  >
+                                    Undo
+                                  </button>
+                                </div>
+                              )}
+                              {isSkipped && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-slate-500">⏭ Skipped</span>
+                                  <button 
+                                    onClick={() => setSkipped(prev => prev.filter(id => id !== c.id))} 
+                                    className="text-[10px] text-slate-400 hover:text-slate-600 underline font-semibold transition-colors"
+                                  >
+                                    Undo
+                                  </button>
+                                </div>
+                              )}
+                              {!isShortlisted && !isRejected && !isSkipped && (
+                                <div className="flex gap-1">
+                                  <button onClick={() => advanceDeck('left', c.id, applicantsForJob.length)} className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-bold rounded-lg transition-colors">✕</button>
+                                  <button onClick={() => advanceDeck('right', c.id, applicantsForJob.length)} className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded-lg transition-colors">✓</button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* ── TAB 2: Syllabus Path Editor (placeholder) ── */}
+                {jobDetailTab === 'syllabus' && (
+                  <div className="p-8 text-center space-y-3" id="job-detail-syllabus">
+                    <div className="text-4xl">🗺️</div>
+                    <h4 className="font-bold text-slate-900 text-sm">Syllabus Path Editor</h4>
+                    <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                      Define the skill node sequence required for this role. Candidates will see their progress along this path.
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center mt-3">
+                      {selectedJob.skillsNeeded.map((s, i) => (
+                        <div key={s} className="flex items-center gap-1.5">
+                          <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                          <span className="px-2 py-1 bg-indigo-50 border border-indigo-100 rounded-lg text-xs font-semibold text-indigo-800">{s}</span>
+                          {i < selectedJob.skillsNeeded.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-slate-300" />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Job cards grid ── */}
           <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm space-y-4">
             <div>
               <span className="text-[10px] font-mono text-indigo-650 font-bold uppercase tracking-wider">Active Recruiter Vacancies</span>
               <h3 className="text-base font-bold text-slate-900 mt-1">Live Recruiter Listings</h3>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Monitor active listings, required skill verification metrics, and live applicant volumes.
+                Click a job card to screen applicants or edit the syllabus path.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {jobs.map(job => (
-                <div key={job.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-5 hover:shadow-sm transition-all space-y-3 flex flex-col justify-between">
+                <div
+                  key={job.id}
+                  onClick={() => { setSelectedJob(job); setJobDetailTab('applicants'); }}
+                  className={`bg-slate-50 border rounded-2xl p-5 hover:shadow-md transition-all space-y-3 flex flex-col justify-between cursor-pointer ${
+                    selectedJob?.id === job.id ? 'border-indigo-400 ring-2 ring-indigo-100' : 'border-slate-100 hover:border-indigo-200'
+                  }`}
+                >
                   <div>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2.5">
@@ -679,9 +1427,16 @@ export default function RecruiterWorkspace({
                           <p className="text-[10px] text-slate-500 mt-0.5">{job.company}</p>
                         </div>
                       </div>
-                      <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-750 text-[10px] font-mono font-bold rounded-full border border-indigo-100/40">
-                        {job.applicantsCount} Applicants
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-750 text-[10px] font-mono font-bold rounded-full border border-indigo-100/40">
+                          {job.applicantsCount} Applicants
+                        </span>
+                        {(sourcedMap[job.id] || []).length > 0 && (
+                          <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-mono font-bold rounded-full border border-emerald-100">
+                            {(sourcedMap[job.id] || []).length} Sourced ✦
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <p className="text-[11px] text-slate-600 mt-3 leading-relaxed line-clamp-3">
@@ -993,6 +1748,20 @@ export default function RecruiterWorkspace({
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Toast notification ── */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 text-white text-xs font-bold px-5 py-3 rounded-xl shadow-2xl"
+          >
+            {toast}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

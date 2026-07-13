@@ -106,7 +106,7 @@ export default function Home() {
   }, [user, userRole, isLoaded]);
 
   const handleSwitchRoleWithConfirmation = async (targetRole: 'candidate' | 'recruiter') => {
-    const roleLabel = targetRole === 'candidate' ? 'Candidate (Alex Carter / Khor Ming Yao)' : 'Recruiter (Teh Meng Chang)';
+    const roleLabel = targetRole === 'candidate' ? 'Candidate (Khor Ming Yao)' : 'Recruiter (Teh Meng Chang)';
     const confirmSwitch = window.confirm(
       `[Prototype Sandbox] This section requires ${targetRole === 'candidate' ? 'Candidate' : 'Recruiter'} credentials.\n\nWould you like to temporarily switch your active prototype session to ${roleLabel} to test this feature?`
     );
@@ -405,6 +405,18 @@ export default function Home() {
         return { ...job, applicantsCount: job.applicantsCount + 1 };
       }
       return job;
+    }));
+
+    // Add this job to the current user's followedJobIds so they appear
+    // in the recruiter's Tinder deck for this role
+    setCandidates(prevCands => prevCands.map(cand => {
+      if (cand.isCurrentUser) {
+        return {
+          ...cand,
+          followedJobIds: [...(cand.followedJobIds || []), jobId]
+        };
+      }
+      return cand;
     }));
   };
 
@@ -724,7 +736,7 @@ Key Requirements:
                       ? 'text-white'
                       : 'text-slate-400 hover:bg-slate-100 hover:text-slate-950'
                   }`}
-                  title="Search Verified Candidates"
+                  title="Talent Market"
                 >
                   {recruiterTab === 'talent' && (
                     <motion.div
