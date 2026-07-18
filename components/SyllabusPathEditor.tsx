@@ -61,26 +61,25 @@ function getNodeIcon(type: string, hash: number) {
 
 const NODE_D = 56
 const NODE_R = NODE_D / 2
-const GRID_COLS = 9
-const GRID_ROWS = 7
-const SLOT_SPACING_X = 104
-const SLOT_SPACING_Y = 122
-const PAD_X = 50
-const PAD_Y = 36
-
-// A node can have at most MAX_CONNECTIONS total edges (in + out combined).
-const MAX_CONNECTIONS = 3
-// Two nodes can only be connected if their Chebyshev slot distance ≤ this.
-const AUTO_CONNECT_DISTANCE = 2
-
-const CANVAS_W = PAD_X * 2 + (GRID_COLS - 1) * SLOT_SPACING_X + SLOT_SPACING_X / 2 + NODE_D
-const CANVAS_H = PAD_Y * 2 + (GRID_ROWS - 1) * SLOT_SPACING_Y + NODE_D
+const SLOT_SPACING_X = 120
+const SLOT_SPACING_Y = 140
+const PAD_X = 80
+const PAD_Y = 60
+const MAX_CONNECTIONS_UP = 3
+const MAX_CONNECTIONS_DOWN = 3
+const MAX_CONNECTIONS = MAX_CONNECTIONS_UP + MAX_CONNECTIONS_DOWN // 6
+const AUTO_CONNECT_DISTANCE = 1
+const CANVAS_W = 6000
+const CANVAS_H = 4000
+const GRID_COLS = Math.floor((CANVAS_W - PAD_X) / SLOT_SPACING_X) // ~49
+const GRID_ROWS = Math.floor((CANVAS_H - PAD_Y) / SLOT_SPACING_Y) // ~28
 
 function slotPixel(col: number, row: number) {
   const x = PAD_X + col * SLOT_SPACING_X + (row % 2 === 1 ? SLOT_SPACING_X / 2 : 0)
   const y = PAD_Y + row * SLOT_SPACING_Y
   return { x, y }
 }
+
 
 function findNearestFreeSlot(centerX: number, centerY: number, occupied: Set<string>) {
   let best: { col: number; row: number; dist: number } | null = null
@@ -101,30 +100,37 @@ function seededRandom(seed: number) {
   return x - Math.floor(x)
 }
 
-/** Chebyshev distance on the grid. Same row = 0 row-diff → never valid. */
 function slotDist(a: SkillNode, b: SkillNode) {
   return Math.max(Math.abs(a.col - b.col), Math.abs(a.row - b.row))
-}
-
-/** A pair is connectable iff: different rows AND within distance. */
-function canConnect(a: SkillNode, b: SkillNode) {
-  if (a.row === b.row) return false
-  return slotDist(a, b) <= AUTO_CONNECT_DISTANCE
 }
 
 function degreeOf(id: string, conns: Connection[]) {
   return conns.filter(c => c.from === id || c.to === id).length
 }
+function neighborsOf(id: string, conns: Connection[]): string[] {
+  return conns
+    .filter(c => c.from === id || c.to === id)
+    .map(c => (c.from === id ? c.to : c.from))
+}
 
+function degreeInDirection(
+  id: string,
+  dir: 'up' | 'down',
+  nodeList: SkillNode[],
+  conns: Connection[],
+): number {
+  const node = nodeList.find(n => n.id === id)
+  if (!node) return 0
+  return neighborsOf(id, conns).filter(nid => {
+    const other = nodeList.find(n => n.id === nid)
+    if (!other) return false
+    return dir === 'up' ? other.row < node.row : other.row > node.row
+  }).length
+}
 function connectionExists(a: string, b: string, conns: Connection[]) {
   return conns.some(c => (c.from === a && c.to === b) || (c.from === b && c.to === a))
 }
 
-/**
- * After a drop, drop all connections that are no longer valid (too far / same row).
- * Then add new connections to every nearby node that still has capacity.
- * Returns the updated connection list.
- */
 function reconcileConnections(
   droppedId: string,
   nodeList: SkillNode[],
@@ -133,22 +139,24 @@ function reconcileConnections(
   const dropped = nodeList.find(n => n.id === droppedId)
   if (!dropped) return conns
 
-  // 1. Remove connections involving the dropped node that are now invalid.
+  // drop any existing tie involving the moved node if it's no longer row-adjacent
   let next = conns.filter(c => {
-    if (c.from !== droppedId && c.to !== droppedId) return true // unrelated — keep
+    if (c.from !== droppedId && c.to !== droppedId) return true
     const peer = nodeList.find(n => n.id === (c.from === droppedId ? c.to : c.from))
     if (!peer) return false
-    return canConnect(dropped, peer) // keep only if still valid
+    return Math.abs(peer.row - dropped.row) === 1
   })
 
-  // 2. Find all nearby nodes we're not yet connected to and auto-connect,
-  //    respecting the MAX_CONNECTIONS cap on both sides. Sort by distance so
-  //    we prefer the closest neighbours first.
+  // candidates: only nodes exactly one row above or below, sorted by pixel distance
   const candidates = nodeList
     .filter(n => n.id !== droppedId)
-    .filter(n => canConnect(dropped, n))
+    .filter(n => Math.abs(n.row - dropped.row) === 1)
     .filter(n => !connectionExists(droppedId, n.id, next))
-    .sort((a, b) => slotDist(dropped, a) - slotDist(dropped, b))
+    .sort((a, b) => {
+      const distA = Math.hypot(a.x - dropped.x, a.y - dropped.y)
+      const distB = Math.hypot(b.x - dropped.x, b.y - dropped.y)
+      return distA - distB
+    })
 
   for (const candidate of candidates) {
     if (degreeOf(droppedId, next) >= MAX_CONNECTIONS) break
@@ -157,14 +165,6 @@ function reconcileConnections(
   }
 
   return next
-}
-
-/** Nodes with zero connections (and there are ≥2 nodes total) are "disconnected". */
-function getDisconnectedIds(nodeList: SkillNode[], conns: Connection[]): Set<string> {
-  if (nodeList.length <= 1) return new Set()
-  const connected = new Set<string>()
-  conns.forEach(c => { connected.add(c.from); connected.add(c.to) })
-  return new Set(nodeList.filter(n => !connected.has(n.id)).map(n => n.id))
 }
 
 // ─── Node / quiz generators ────────────────────────────────────────────────
@@ -228,38 +228,58 @@ function generateQuizOptions(name: string): QuizOption[] {
 
 function assignSlots(nodeList: SkillNode[], conns: Connection[]): Record<string, { col: number; row: number }> {
   const childrenOf: Record<string, string[]> = {}
-  const hasParent = new Set<string>()
+  const parentOf: Record<string, string> = {}
+
   conns.forEach(c => {
     if (!nodeList.some(n => n.id === c.from) || !nodeList.some(n => n.id === c.to)) return
     childrenOf[c.from] = childrenOf[c.from] || []
     childrenOf[c.from].push(c.to)
-    hasParent.add(c.to)
+    parentOf[c.to] = c.from
   })
-  const roots = nodeList.filter(n => !hasParent.has(n.id)).map(n => n.id)
-  const rootIds = roots.length ? roots : nodeList.slice(0, 1).map(n => n.id)
-  const cols: Record<string, number> = {}
+
+  const roots = nodeList.filter(n => !parentOf[n.id]).map(n => n.id)
   const rows: Record<string, number> = {}
-  const visited = new Set<string>()
+  const cols: Record<string, number> = {}
   let leafCol = 0
 
-  function place(id: string, depth: number): number {
+  const queue = [...roots]
+  roots.forEach(id => { rows[id] = 0 })
+
+  while (queue.length) {
+    const id = queue.shift()!
+    const kids = childrenOf[id] || []
+    kids.forEach(kid => {
+      rows[kid] = rows[id] + 1
+      queue.push(kid)
+    })
+  }
+
+  const visited = new Set<string>()
+  function assignCol(id: string): number {
     if (visited.has(id)) return cols[id]
     visited.add(id)
     const kids = (childrenOf[id] || []).filter(k => !visited.has(k))
     let col: number
-    if (kids.length === 0) { col = leafCol++ }
-    else {
-      const kidCols = kids.map(k => place(k, depth + 1))
+    if (kids.length === 0) {
+      col = leafCol++
+    } else {
+      const kidCols = kids.map(k => assignCol(k))
       col = Math.round((Math.min(...kidCols) + Math.max(...kidCols)) / 2)
     }
     cols[id] = Math.min(col, GRID_COLS - 1)
-    rows[id] = Math.min(depth, GRID_ROWS - 1)
-    return col
+    return cols[id]
   }
-  rootIds.forEach(id => place(id, 0))
-  nodeList.forEach(n => { if (!visited.has(n.id)) place(n.id, 0) })
+
+  roots.forEach(id => assignCol(id))
+  nodeList.forEach(n => { if (!visited.has(n.id)) assignCol(n.id) })
+
   const result: Record<string, { col: number; row: number }> = {}
-  nodeList.forEach(n => { result[n.id] = { col: cols[n.id] ?? 0, row: rows[n.id] ?? 0 } })
+  nodeList.forEach(n => {
+    result[n.id] = {
+      col: cols[n.id] ?? 0,
+      row: Math.min(rows[n.id] ?? 0, GRID_ROWS - 1)
+    }
+  })
   return result
 }
 
@@ -275,19 +295,24 @@ function applyLayout(nodeList: SkillNode[], conns: Connection[]): SkillNode[] {
 function buildDefaultTree(ids: string[]): Connection[] {
   if (ids.length <= 1) return []
   const conns: Connection[] = []
-  const degree: Record<string, number> = {}
-  const root = ids[0]; degree[root] = 0
-  const queue: string[] = [root]; let i = 1
-  while (i < ids.length && queue.length) {
-    const parent = queue[0]
-    const cap = parent === root ? MAX_CONNECTIONS : MAX_CONNECTIONS - 1
-    if ((degree[parent] || 0) >= cap) { queue.shift(); continue }
-    const child = ids[i]
-    conns.push({ from: parent, to: child })
-    degree[parent] = (degree[parent] || 0) + 1
-    degree[child] = 1
-    queue.push(child); i++
+  const BRANCH_FACTOR = 3
+  let currentLevel = [ids[0]]
+  let i = 1
+
+  while (i < ids.length) {
+    const nextLevel: string[] = []
+    for (const parent of currentLevel) {
+      for (let b = 0; b < BRANCH_FACTOR && i < ids.length; b++) {
+        const child = ids[i]
+        conns.push({ from: parent, to: child })
+        nextLevel.push(child)
+        i++
+      }
+    }
+    currentLevel = nextLevel
+    if (currentLevel.length === 0) break
   }
+
   return conns
 }
 
@@ -320,7 +345,9 @@ export default function SyllabusPathEditor({
   initialSkills = ['HTML5/CSS3', 'React', 'TypeScript', 'Next.js', 'Supabase', 'Docker', 'SQL', 'Node.js', 'REST APIs'],
 }: SyllabusPathEditorProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
-
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [isPanning, setIsPanning] = useState(false)
+  const panStart = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 })
   const seed = useMemo(() => {
     const raw = initialSkills.map((name, i) => generateNodeData(name, i))
     const conns = buildDefaultTree(raw.map(n => n.id))
@@ -341,18 +368,14 @@ export default function SyllabusPathEditor({
   const [saveFlash, setSaveFlash] = useState(false)
   const [selectedQuizOption, setSelectedQuizOption] = useState<Record<string, number>>({})
   const [zoom, setZoom] = useState(1)
-
-  // Live preview of which connections would appear if we dropped right now
   const [previewConns, setPreviewConns] = useState<Connection[]>([])
 
   const selectedNode = nodes.find(n => n.id === selectedId) || null
-  const disconnectedIds = useMemo(() => getDisconnectedIds(nodes, connections), [nodes, connections])
 
   const zoomIn = () => setZoom(z => Math.min(1.5, Math.round((z + 0.15) * 100) / 100))
   const zoomOut = () => setZoom(z => Math.max(0.4, Math.round((z - 0.15) * 100) / 100))
   const zoomReset = () => setZoom(1)
 
-  // Elbow path between two node centres
   function elbowPath(a: SkillNode, b: SkillNode) {
     const ax = a.x + NODE_R, ay = a.y + NODE_R
     const bx = b.x + NODE_R, by = b.y + NODE_R
@@ -368,6 +391,33 @@ export default function SyllabusPathEditor({
   }
 
   // ── Drag ──────────────────────────────────────────────────────────────────
+const handleBoardMouseDown = (e: React.MouseEvent) => {
+  if (linkMode || draggingId) return
+  const container = scrollContainerRef.current
+  if (!container) return
+  setIsPanning(true)
+  panStart.current = {
+    x: e.clientX,
+    y: e.clientY,
+    scrollLeft: container.scrollLeft,
+    scrollTop: container.scrollTop,
+  }
+}
+
+const handlePanMouseMove = useCallback((e: MouseEvent) => {
+  if (!isPanning) return
+  const container = scrollContainerRef.current
+  if (!container) return
+  const dx = e.clientX - panStart.current.x
+  const dy = e.clientY - panStart.current.y
+  container.scrollLeft = panStart.current.scrollLeft - dx
+  container.scrollTop = panStart.current.scrollTop - dy
+}, [isPanning])
+
+const handlePanMouseUp = useCallback(() => {
+  setIsPanning(false)
+}, [])
+
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if (linkMode) return
     e.stopPropagation()
@@ -389,17 +439,13 @@ export default function SyllabusPathEditor({
 
     setNodes(prev => {
       const updated = prev.map(n => n.id === draggingId ? { ...n, x, y } : n)
-
-      // Compute a temporary snap slot so we can show a live connection preview
       const dragged = updated.find(n => n.id === draggingId)!
       const occupied = new Set(updated.filter(n => n.id !== draggingId).map(n => `${n.col},${n.row}`))
       const nearest = findNearestFreeSlot(dragged.x + NODE_R, dragged.y + NODE_R, occupied)
       if (nearest) {
-        // Build a ghost node at the snapped position to test candidates
         const ghost = { ...dragged, col: nearest.col, row: nearest.row }
         const ghostList = updated.map(n => n.id === draggingId ? ghost : n)
         const preview = reconcileConnections(draggingId, ghostList, connections)
-        // Only surface connections added or preserved — not ones being removed — as "preview"
         const addedOrKept = preview.filter(c =>
           (c.from === draggingId || c.to === draggingId) &&
           !connectionExists(c.from, c.to, connections.filter(cc =>
@@ -412,7 +458,6 @@ export default function SyllabusPathEditor({
     })
   }, [draggingId, dragOffset, zoom, connections])
 
-  // On release: snap → reconcile connections (prune invalid + auto-connect nearby)
   const handleMouseUp = useCallback(() => {
     if (draggingId) {
       setNodes(prev => {
@@ -425,7 +470,6 @@ export default function SyllabusPathEditor({
         const snapped = prev.map(n =>
           n.id === draggingId ? { ...n, x, y, col: nearest.col, row: nearest.row } : n
         )
-        // Reconcile: remove broken + auto-attach nearby nodes
         setConnections(prevConns => reconcileConnections(draggingId, snapped, prevConns))
         setPreviewConns([])
         return snapped
@@ -438,11 +482,15 @@ export default function SyllabusPathEditor({
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('mousemove', handlePanMouseMove)
+    window.addEventListener('mouseup', handlePanMouseUp)
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('mousemove', handlePanMouseMove)
+      window.removeEventListener('mouseup', handlePanMouseUp)
     }
-  }, [handleMouseMove, handleMouseUp])
+  }, [handleMouseMove, handleMouseUp, handlePanMouseMove, handlePanMouseUp])
 
   // ── Manual re-link mode ───────────────────────────────────────────────────
   const handleNodeClickInLinkMode = (id: string) => {
@@ -456,10 +504,6 @@ export default function SyllabusPathEditor({
       flashWarning('Cannot link nodes on the same row — they must be above/below each other.')
       setLinkFrom(null); setLinkMode(false); return
     }
-    if (slotDist(fromNode, toNode) > AUTO_CONNECT_DISTANCE) {
-      flashWarning('Nodes are too far apart — move them closer first.')
-      setLinkFrom(null); setLinkMode(false); return
-    }
 
     const exists = connectionExists(linkFrom, id, connections)
     if (exists) {
@@ -469,8 +513,15 @@ export default function SyllabusPathEditor({
       setLinkFrom(null); setLinkMode(false); return
     }
 
-    if (degreeOf(linkFrom, connections) >= MAX_CONNECTIONS || degreeOf(id, connections) >= MAX_CONNECTIONS) {
-      flashWarning(`Each node can only connect to ${MAX_CONNECTIONS} others.`)
+    const dir: 'up' | 'down' = fromNode.row < toNode.row ? 'down' : 'up'
+    const fromCap = dir === 'up' ? MAX_CONNECTIONS_UP : MAX_CONNECTIONS_DOWN
+    const toCap = dir === 'up' ? MAX_CONNECTIONS_DOWN : MAX_CONNECTIONS_UP
+
+    if (
+      degreeInDirection(linkFrom, dir, nodes, connections) >= fromCap ||
+      degreeInDirection(id, dir === 'up' ? 'down' : 'up', nodes, connections) >= toCap
+    ) {
+      flashWarning(`Each node can only connect to ${MAX_CONNECTIONS_UP} above and ${MAX_CONNECTIONS_DOWN} below.`)
       setLinkFrom(null); setLinkMode(false); return
     }
 
@@ -492,11 +543,11 @@ export default function SyllabusPathEditor({
     if (!name?.trim()) return
     const newNode = generateNodeData(name.trim(), nodes.length)
     let parentId: string | undefined
-    if (selectedId && degreeOf(selectedId, connections) < MAX_CONNECTIONS) {
+    if (selectedId && degreeInDirection(selectedId, 'down', nodes, connections) < MAX_CONNECTIONS_DOWN) {
       parentId = selectedId
     } else {
-      parentId = nodes.find(n => degreeOf(n.id, connections) < MAX_CONNECTIONS)?.id
-      if (!parentId) flashWarning('Every node is already full — added as a new root.')
+      parentId = nodes.find(n => degreeInDirection(n.id, 'down', nodes, connections) < MAX_CONNECTIONS_DOWN)?.id
+      if (!parentId) flashWarning('Every node already has 3 children — added as a new root.')
     }
     const nextNodes = [...nodes, newNode]
     const nextConns = parentId ? [...connections, { from: parentId, to: newNode.id }] : connections
@@ -512,6 +563,25 @@ export default function SyllabusPathEditor({
     setConnections(nextConns)
     setNodes(applyLayout(nextNodes, nextConns))
     setSelectedId(nextNodes[0]?.id || null)
+  }
+
+  const handleReparent = (nodeId: string, newParentId: string | null) => {
+    // drop this node's existing "upward" connection (to whatever's currently one row above it)
+    const nextConnsWithoutOldParent = connections.filter(c => {
+      if (c.to !== nodeId && c.from !== nodeId) return true
+      const peerId = c.from === nodeId ? c.to : c.from
+      const peer = nodes.find(n => n.id === peerId)
+      const self = nodes.find(n => n.id === nodeId)
+      if (!peer || !self) return true
+      return peer.row >= self.row  // keep connections to children/siblings, drop the one to the old parent
+    })
+
+    const nextConns = newParentId
+      ? [...nextConnsWithoutOldParent, { from: newParentId, to: nodeId }]
+      : nextConnsWithoutOldParent
+
+    setConnections(nextConns)
+    setNodes(prev => applyLayout(prev, nextConns))
   }
 
   // ── Save edits ────────────────────────────────────────────────────────────
@@ -534,7 +604,6 @@ export default function SyllabusPathEditor({
     setTimeout(() => setSaveFlash(false), 1500)
   }
 
-  // Which connections to actually render: committed set + live preview additions
   const visibleConns = useMemo(() => {
     const all = [...connections]
     previewConns.forEach(pc => {
@@ -575,11 +644,6 @@ export default function SyllabusPathEditor({
                 <AlertTriangle className="w-3 h-3" /> {linkWarning}
               </span>
             )}
-            {disconnectedIds.size > 0 && !linkWarning && (
-              <span className="flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-2 py-1">
-                <WifiOff className="w-3 h-3" /> {disconnectedIds.size} node{disconnectedIds.size > 1 ? 's' : ''} disconnected
-              </span>
-            )}
 
             {/* Zoom controls */}
             <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-lg p-0.5">
@@ -591,9 +655,16 @@ export default function SyllabusPathEditor({
           </div>
 
           {/* Board */}
-          <div className="relative flex-1 bg-slate-50/40 overflow-auto"
-            style={{ cursor: draggingId ? 'grabbing' : 'default' }}
-            onClick={() => { if (!linkMode) setSelectedId(null) }}>
+          <div
+            ref={scrollContainerRef}
+            className="relative bg-slate-50/40 overflow-auto select-none"
+            style={{
+              cursor: draggingId ? 'grabbing' : isPanning ? 'grabbing' : 'grab',
+              height: '500px',   // ← this is your "limit view size" — set whatever fixed height/width you want
+            }}
+            onMouseDown={handleBoardMouseDown}
+            onClick={() => { if (!linkMode && !isPanning) setSelectedId(null) }}
+          >
             <div ref={canvasRef} className="relative origin-top-left"
               style={{ width: `${CANVAS_W}px`, height: `${CANVAS_H}px`, transform: `scale(${zoom})` }}>
 
@@ -636,7 +707,6 @@ export default function SyllabusPathEditor({
                   )
                 })}
 
-                {/* Pulse ring on link-mode source */}
                 {linkMode && linkFrom && (() => {
                   const from = nodes.find(n => n.id === linkFrom)
                   if (!from) return null
@@ -653,9 +723,7 @@ export default function SyllabusPathEditor({
                 const isSelected = node.id === selectedId
                 const isLinkSource = node.id === linkFrom
                 const isFull = degreeOf(node.id, connections) >= MAX_CONNECTIONS
-                const isDisconnected = disconnectedIds.has(node.id)
                 const isDraggingThis = node.id === draggingId
-                // Highlight nodes the dragged node would connect TO
                 const wouldConnect = isDraggingThis
                   ? false
                   : previewConns.some(pc => pc.from === node.id || pc.to === node.id)
@@ -672,16 +740,6 @@ export default function SyllabusPathEditor({
                     onClick={e => handleNodeClick(e, node.id)}
                     className="cursor-pointer select-none flex flex-col items-center">
 
-                    {/* Disconnected glow */}
-                    {isDisconnected && (
-                      <div className="absolute animate-pulse rounded-full" style={{
-                        inset: -6, background: 'rgba(252,165,165,0.35)',
-                        border: '2px dashed #FCA5A5', borderRadius: '50%',
-                        width: NODE_D + 12, height: NODE_D + 12, top: -6, left: -6,
-                      }} />
-                    )}
-
-                    {/* "Would connect" green pulse */}
                     {wouldConnect && (
                       <div className="absolute rounded-full" style={{
                         border: '2.5px dashed #34D399', borderRadius: '50%',
@@ -693,36 +751,31 @@ export default function SyllabusPathEditor({
 
                     <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-md ring-2 ring-white transition-all hover:shadow-lg relative"
                       style={{
-                        background: isDisconnected ? '#FECACA' : node.color,
-                        outline: isSelected && !isDisconnected
+                        background: node.color,
+                        outline: isSelected 
                           ? `3px solid ${node.color}55`
-                          : isSelected && isDisconnected
+                          : isSelected
                           ? '3px solid #FCA5A588'
                           : isLinkSource ? '3px solid #F59E0B55'
                           : wouldConnect ? '3px solid #34D39955'
                           : 'none',
                         outlineOffset: 2,
-                        border: isDisconnected ? '2px solid #F87171' : undefined,
+                        border: undefined,
                         boxShadow: isDraggingThis ? '0 8px 30px rgba(79,70,229,0.35)' : undefined,
                       }}>
-                      {isDisconnected ? <WifiOff className="w-5 h-5 text-rose-500" /> : <Icon className="w-6 h-6 text-white" />}
+                      {<Icon className="w-6 h-6 text-white" />}
                       {linkMode && isFull && (
                         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 border-2 border-white flex items-center justify-center text-[8px] font-bold text-white">3</span>
                       )}
                     </div>
 
                     <div className="mt-1.5 text-center">
-                      <div className="text-[10.5px] font-bold leading-tight max-w-[90px]"
-                        style={{ color: isDisconnected ? '#EF4444' : '#1E293B' }}>
+                      <div className="text-[10.5px] font-bold leading-tight max-w-[90px]" style={{ color: '#1E293B' }}>
                         {node.name}
                       </div>
-                      {isDisconnected ? (
-                        <div className="text-[9px] text-rose-400 font-semibold mt-0.5">disconnected</div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1 text-[9px] text-slate-400 mt-0.5">
-                          <Users className="w-2.5 h-2.5" />{node.learners.length}
-                        </div>
-                      )}
+                      <div className="flex items-center justify-center gap-1 text-[9px] text-slate-400 mt-0.5">
+                        <Users className="w-2.5 h-2.5" />{node.learners.length}
+                      </div>
                     </div>
                   </motion.div>
                 )
@@ -751,10 +804,15 @@ export default function SyllabusPathEditor({
                 </div>
                 <p className="text-xs text-slate-400 font-medium">Click a node to inspect it</p>
               </div>
-            ) : disconnectedIds.has(selectedNode.id) ? (
-              <DisconnectedPanel node={selectedNode} />
             ) : drawerTab === 'preview' ? (
-              <PreviewPanel node={selectedNode} selectedQuizOption={selectedQuizOption} setSelectedQuizOption={setSelectedQuizOption} />
+              <PreviewPanel
+                node={selectedNode}
+                allNodes={nodes}
+                connections={connections}
+                onReparent={handleReparent}
+                selectedQuizOption={selectedQuizOption}
+                setSelectedQuizOption={setSelectedQuizOption}
+              />
             ) : (
               <EditPanel node={selectedNode} editValues={editValues} setEditValues={setEditValues} onSave={handleSave} saveFlash={saveFlash} />
             )}
@@ -778,7 +836,7 @@ function DisconnectedPanel({ node }: { node: SkillNode }) {
         <p className="text-xs text-slate-400 leading-relaxed">
           Drag it close to another node — it will auto-connect when you drop it within range.
         </p>
-      </div>
+      </div>anel
       <div className="mt-2 bg-rose-50 border border-rose-100 rounded-xl px-4 py-3 text-xs text-rose-500 font-medium w-full">
         Preview unavailable until reconnected
       </div>
@@ -788,13 +846,19 @@ function DisconnectedPanel({ node }: { node: SkillNode }) {
 
 // ─── PREVIEW PANEL ─────────────────────────────────────────────────────────
 
-function PreviewPanel({ node, selectedQuizOption, setSelectedQuizOption }: {
+function PreviewPanel({ node, allNodes, connections, onReparent, selectedQuizOption, setSelectedQuizOption }: {
   node: SkillNode
+  allNodes: SkillNode[]
+  connections: Connection[]
+  onReparent: (nodeId: string, newParentId: string | null) => void
   selectedQuizOption: Record<string, number>
   setSelectedQuizOption: React.Dispatch<React.SetStateAction<Record<string, number>>>
 }) {
   const [activeSlide, setActiveSlide] = useState(0)
   const chosen = selectedQuizOption[node.id]
+  const currentParent = allNodes.find(n =>                   
+    connections.some(c => c.to === node.id && c.from === n.id && n.row < node.row) 
+  )  
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2.5">
@@ -806,6 +870,24 @@ function PreviewPanel({ node, selectedQuizOption, setSelectedQuizOption }: {
           <div className="text-[10px] text-slate-400">{node.type}</div>
         </div>
       </div>
+      <div>
+        <label className="block text-[10px] font-bold text-slate-500 mb-1">Connect under (parent)</label>
+        <select
+          value={currentParent?.id || ''}
+          onChange={e => onReparent(node.id, e.target.value || null)}
+          className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+        >
+          <option value="">— No parent (root) —</option>
+          {allNodes
+            .filter(n => n.id !== node.id)
+            .map(n => (
+              <option key={n.id} value={n.id}>{n.name}</option>
+            ))}
+        </select>
+        <p className="text-[9.5px] text-slate-400 mt-1">
+          Changing this rebuilds the tree below the new parent.
+        </p>
+    </div>
       <div>
         <div className="flex items-center gap-1.5 mb-2">
           <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
