@@ -95,7 +95,7 @@ export default function SharedMarketplace({
         seedEvents.unshift({
           id: `evt-user-grad-${index}`,
           type: 'graduate',
-          title: `You (Alex Carter) successfully secured Verified Badge: ${skill}`,
+          title: `You (Khor Ming Yao) successfully secured Verified Badge: ${skill}`,
           subtitle: `Added to your candidate profile securely. Verified matching roles highlighted!`,
           timestamp: 'Just now'
         });
@@ -109,7 +109,7 @@ export default function SharedMarketplace({
         seedEvents.unshift({
           id: `evt-apply-${jobId}`,
           type: 'apply',
-          title: `Alex Carter applied for ${targetJob.title}`,
+          title: `Khor Ming Yao applied for ${targetJob.title}`,
           subtitle: `CVS verified credentials attached to application package for ${targetJob.company}.`,
           timestamp: '2 mins ago'
         });
