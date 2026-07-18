@@ -25,10 +25,9 @@ import {
   ArrowLeft,
   LayoutList,
   Layers,
-  GripVertical
-  Trash2,
+  GripVertical,
+  Trash,
   HelpCircle,
-  X 
 } from 'lucide-react';
 import { Candidate, Course, Job, CourseRequest } from '@/lib/types';
 import { SKILL_TREES, getPathConnections, renderSkillIcon } from './CandidateWorkspace';
@@ -2507,7 +2506,7 @@ export default function RecruiterWorkspace({
                         onClick={() => handleRequestDeleteJob(job.id)}
                         className="w-full flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-rose-600 hover:bg-rose-50 py-1.5 rounded-lg transition"
                       >
-                        <Trash2 className="w-3 h-3" /> Delete listing
+                        <Trash className="w-3 h-3" /> Delete listing
                       </button>
                     )}
                   </div>
