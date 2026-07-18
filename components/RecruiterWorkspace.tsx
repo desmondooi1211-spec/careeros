@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Candidate, Course, Job, CourseRequest } from '@/lib/types';
 import { SKILL_TREES, getPathConnections, renderSkillIcon } from './CandidateWorkspace';
+import SyllabusPathEditor from './SyllabusPathEditor'
 
 interface RecruiterWorkspaceProps {
   candidates: Candidate[];
@@ -2399,21 +2400,12 @@ export default function RecruiterWorkspace({
 
                 {/* ── TAB 2: Syllabus Path Editor (placeholder) ── */}
                 {jobDetailTab === 'syllabus' && (
-                  <div className="p-8 text-center space-y-3" id="job-detail-syllabus">
-                    <div className="text-4xl">🗺️</div>
-                    <h4 className="font-bold text-slate-900 text-sm">Syllabus Path Editor</h4>
-                    <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                      Define the skill node sequence required for this role. Candidates will see their progress along this path.
-                    </p>
-                    <div className="flex flex-wrap gap-2 justify-center mt-3">
-                      {selectedJob.skillsNeeded.map((s, i) => (
-                        <div key={s} className="flex items-center gap-1.5">
-                          <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
-                          <span className="px-2 py-1 bg-indigo-50 border border-indigo-100 rounded-lg text-xs font-semibold text-indigo-800">{s}</span>
-                          {i < selectedJob.skillsNeeded.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-slate-300" />}
-                        </div>
-                      ))}
-                    </div>
+                  <div id="job-detail-syllabus">
+                    <SyllabusPathEditor
+                      jobTitle={selectedJob.title}
+                      jobCompany={selectedJob.company}
+                      initialSkills={selectedJob.skillsNeeded}
+                    />
                   </div>
                 )}
               </motion.div>
