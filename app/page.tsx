@@ -15,6 +15,7 @@ import {
   INITIAL_JOBS, 
   INITIAL_REQUESTS 
 } from '@/lib/mockData';
+import { generateSyllabusForJob } from '@/lib/syllabusGenerator';
 import { Course, Candidate, Job, CourseRequest, Project } from '@/lib/types';
 import { 
   Layers, 
@@ -431,6 +432,10 @@ export default function Home() {
     };
 
     setJobs(prevJobs => [freshJob, ...prevJobs]);
+  };
+
+  const handleDeleteJob = (jobId: string) => {
+    setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
   };
 
   const handleRequestCourse = (reqData: Omit<CourseRequest, 'id' | 'status' | 'dateRequested'>) => {
@@ -900,6 +905,7 @@ Key Requirements:
                     jobs={jobs}
                     courseRequests={courseRequests}
                     onAddJob={handleAddJob}
+                    onDeleteJob={handleDeleteJob}
                     onRequestCourse={handleRequestCourse}
                     onApproveSyllabus={handleApproveSyllabus}
                     initialFocusedCandidate={preselectedCandidate}

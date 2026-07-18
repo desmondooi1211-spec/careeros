@@ -1,4 +1,5 @@
-import { Course, Candidate, Job, CourseRequest } from './types';
+import type { Course, Candidate, Job, CourseRequest } from './types';
+import { defaultFullStackSyllabus, generateSyllabusForJob } from './syllabusGenerator';
 
 export const INITIAL_COURSES: Course[] = [
   {
@@ -354,7 +355,8 @@ export const INITIAL_JOBS: Job[] = [
     type: 'Full-time',
     location: 'Remote (US/Canada)',
     datePosted: '2 days ago',
-    applicantsCount: 4
+    applicantsCount: 4,
+    syllabusPath: defaultFullStackSyllabus
   },
   {
     id: 'job-2',
@@ -389,7 +391,8 @@ export const INITIAL_JOBS: Job[] = [
     type: 'Full-time',
     location: 'New York, NY (Hybrid)',
     datePosted: 'Just now',
-    applicantsCount: 0
+    applicantsCount: 0,
+    syllabusPath: generateSyllabusForJob('Senior Frontend Architect', ['Next.js', 'React', 'SSR', 'Server Actions', 'Micro-Frontends', 'Performance Optimization', 'GraphQL', 'CI/CD'])
   },
   {
     id: 'job-3',
@@ -424,7 +427,8 @@ export const INITIAL_JOBS: Job[] = [
     type: 'Full-time',
     location: 'Remote',
     datePosted: '3 days ago',
-    applicantsCount: 9
+    applicantsCount: 9,
+    syllabusPath: generateSyllabusForJob('Systems & Reliability Architect', ['Docker', 'Kubernetes', 'CI/CD', 'Scalability', 'Cloud Operations', 'Security'])
   },
   {
     id: 'job-4',
@@ -442,7 +446,8 @@ export const INITIAL_JOBS: Job[] = [
     type: 'Contract',
     location: 'San Francisco, CA',
     datePosted: '5 days ago',
-    applicantsCount: 12
+    applicantsCount: 12,
+    syllabusPath: generateSyllabusForJob('Product Innovation Specialist', ['PLG', 'Funnel Analytics', 'User Retention', 'A/B Testing'])
   }
 ];
 

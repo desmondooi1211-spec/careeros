@@ -17,6 +17,8 @@ import {
   Flame, 
   Briefcase,
   CheckCircle2,
+  Trash2,
+  HelpCircle,
   X 
 } from 'lucide-react';
 import { Candidate, Course, Job, CourseRequest } from '@/lib/types';
@@ -28,6 +30,7 @@ interface RecruiterWorkspaceProps {
   jobs: Job[];
   courseRequests: CourseRequest[];
   onAddJob: (job: Omit<Job, 'id' | 'applicantsCount' | 'datePosted' | 'logo'>) => void;
+  onDeleteJob?: (jobId: string) => void;
   onRequestCourse: (request: Omit<CourseRequest, 'id' | 'status' | 'dateRequested'>) => void;
   onApproveSyllabus: (requestId: string) => void;
   initialFocusedCandidate?: Candidate | null;
@@ -36,12 +39,63 @@ interface RecruiterWorkspaceProps {
   setActiveTab: (tab: 'talent' | 'post-job' | 'curriculum' | 'my-jobs') => void;
 }
 
+// ─── AI SYNTHESIS FLOW CONSTANTS ────────────────────────────────────────────
+// Drives the overlay screen shown between "Finalize Job" submit and the real
+// onAddJob() call — mirrors app/hiring/page.jsx's HiringHub overlay steps.
+const JOB_OVERLAY_STEPS = [
+  'Parsing job requirements',
+  'Mapping skill dependencies',
+  'Generating prerequisite tree',
+  'Compiling lesson slides',
+  'Assembling quiz assessments',
+  'Finalising evaluation gates',
+];
+
+// Broad keyword pool used by "Detect skills from description" — merged with
+// whatever skills your courses already grant, so detection stays relevant
+// to CareerOS's own syllabus as it grows.
+const COMMON_SKILL_KEYWORDS = [
+  'Next.js', 'React', 'Vue.js', 'Angular', 'TypeScript', 'JavaScript', 'HTML5/CSS3', 'Tailwind CSS',
+  'Node.js', 'Python', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Swift', 'Kotlin',
+  'Supabase', 'PostgreSQL', 'MongoDB', 'MySQL', 'Redis', 'Firebase', 'GraphQL', 'REST APIs',
+  'SSR', 'State Management', 'Micro-Frontends', 'Server Actions', 'WebSockets',
+  'Docker', 'Kubernetes', 'CI/CD', 'AWS', 'Azure', 'GCP', 'DevOps', 'Microservices',
+  'Machine Learning', 'TensorFlow', 'PyTorch', 'Gemini API', 'LLM', 'Large Language Models', 'Prompt Engineering', 'AI Engineering',
+  'UI/UX', 'Figma', 'Design Systems', 'Typography',
+  'A/B Testing', 'User Retention', 'Funnel Analytics', 'PLG', 'Agile', 'Scrum', 'Product Management',
+  'Testing/Vitest', 'GraphQL', 'Scalability', 'Performance Optimization', 'SQL'
+];
+
+interface SkillNode {
+  id: string;
+  name: string;
+  description?: string;
+  slides?: number;
+  quizzes?: number;
+  practicals?: number;
+  enrolled?: number;
+}
+
+// One-click presets for judges/testers — each is a fully-formed skill +
+// description so a demo can add a node without typing anything.
+const QUICK_ADD_SKILL_PRESETS = [
+  {
+    name: 'React Native',
+    description: 'Build cross-platform mobile apps with React Native, covering navigation, native modules, animations, and app store deployment workflows.'
+  },
+  {
+    name: 'GraphQL',
+    description: 'Design and consume GraphQL APIs, covering schema design, resolvers, mutations, and client-side caching strategies for modern web apps.'
+  }
+];
+
 export default function RecruiterWorkspace({
   candidates,
   courses,
   jobs,
   courseRequests,
   onAddJob,
+  onDeleteJob,
   onRequestCourse,
   onApproveSyllabus,
   initialFocusedCandidate,
@@ -61,6 +115,103 @@ export default function RecruiterWorkspace({
   const [jobLocation, setJobLocation] = useState('');
   const [jobType, setJobType] = useState<'Full-time' | 'Contract' | 'Part-time' | 'Remote'>('Full-time');
   const [jobSuccessMsg, setJobSuccessMsg] = useState(false);
+  const [skillDetectMsg, setSkillDetectMsg] = useState('');
+
+  // ─── AI Synthesis / Path Outline flow state ───────────────────────────────
+  // 'form' = the normal job posting form (default)
+  // 'overlay' = AI synthesis animation playing
+  // 'outline' = generated skill-path outline for review
+  // 'editor' = lightweight editor to tweak the generated skill nodes
+  // 'publish' = confirmation screen after the real onAddJob() has fired
+  const [postJobFlow, setPostJobFlow] = useState<'form' | 'overlay' | 'outline' | 'editor' | 'publish'>('form');
+  const [overlayStepIndex, setOverlayStepIndex] = useState(-1);
+  const [skillNodes, setSkillNodes] = useState<SkillNode[]>([]);
+  const [pendingJob, setPendingJob] = useState<Omit<Job, 'id' | 'applicantsCount' | 'datePosted' | 'logo'> | null>(null);
+  const [draggedSkillIdx, setDraggedSkillIdx] = useState<number | null>(null);
+  const [dragOverSkillIdx, setDragOverSkillIdx] = useState<number | null>(null);
+  const [confirmDeleteJobId, setConfirmDeleteJobId] = useState<string | null>(null);
+
+  // ── "Add new skill" flow state (editor screen) ────────────────────────────
+  // 'closed' = no add-skill UI showing
+  // 'form'   = name + description form open
+  // 'generating' = course-compiler animation playing before the node is committed
+  const [addSkillStep, setAddSkillStep] = useState<'closed' | 'form' | 'generating'>('closed');
+  const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillDesc, setNewSkillDesc] = useState('');
+  const [addSkillError, setAddSkillError] = useState('');
+  const [skillGenStepText, setSkillGenStepText] = useState('');
+  const [skillGenTargets, setSkillGenTargets] = useState<{ slides: number; quizzes: number; practicals: number; enrolled: number } | null>(null);
+  const [skillGenCounts, setSkillGenCounts] = useState({ slides: 0, quizzes: 0, practicals: 0, enrolled: 0 });
+  const [skillGenBurst, setSkillGenBurst] = useState(false);
+
+  // Deterministic accent color per skill name, used as the little dot on
+  // each skill node in both the outline review and the editor.
+  const SKILL_DOT_PALETTE = ['#4F46E5', '#7C3AED', '#0891B2', '#059669', '#DB2777', '#D97706'];
+  const getSkillDotColor = (name: string) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+    return SKILL_DOT_PALETTE[hash % SKILL_DOT_PALETTE.length];
+  };
+
+  // Deterministic "seeded random" (same skill name always yields the same
+  // numbers), so the hover tooltip stats don't jump around on re-render.
+  const seededRandom = (seed: number) => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  };
+
+  // Raw hash-based stats for a skill name — used as the fallback for skills
+  // that were typed directly into the Skills field (no description of their
+  // own), rather than added through the "Add new skill" generator below.
+  const getHashBasedStats = (name: string) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = (hash * 37 + name.charCodeAt(i)) >>> 0;
+    return {
+      slides: 4 + Math.floor(seededRandom(hash) * 6), // 4–9
+      quizzes: 1 + Math.floor(seededRandom(hash * 2.7) * 3), // 1–3
+      practicals: Math.floor(seededRandom(hash * 4.3) * 3), // 0–2
+      enrolled: 60 + Math.floor(seededRandom(hash * 6.1) * 800) // 60–860
+    };
+  };
+
+  // Course-generation targets for a NEW skill, derived from its name +
+  // recruiter-written description (longer descriptions bias toward more
+  // slides), used to drive the "course compiler" generation animation.
+  const computeSkillGenTargets = (name: string, description: string) => {
+    const seedStr = `${name}::${description}`;
+    let hash = 0;
+    for (let i = 0; i < seedStr.length; i++) hash = (hash * 41 + seedStr.charCodeAt(i)) >>> 0;
+    const wordCount = description.trim().split(/\s+/).filter(Boolean).length;
+
+    const slides = Math.max(4, Math.min(14, Math.round(4 + wordCount / 10 + seededRandom(hash) * 3)));
+    const quizzes = 1 + Math.floor(seededRandom(hash * 2.7) * 3);
+    const practicals = Math.floor(seededRandom(hash * 4.3) * 3);
+    const enrolled = 60 + Math.floor(seededRandom(hash * 6.1) * 800);
+
+    return { slides, quizzes, practicals, enrolled };
+  };
+
+  // Tooltip data for a skill node. Nodes added through the generator carry
+  // their own description + real generated stats — everything else (skills
+  // typed straight into the Skills field) falls back to hash-based estimates.
+  const getSkillNodeInsights = (node: SkillNode) => {
+    if (node.slides !== undefined && node.quizzes !== undefined && node.practicals !== undefined && node.enrolled !== undefined) {
+      return {
+        slides: node.slides,
+        quizzes: node.quizzes,
+        practicals: node.practicals,
+        enrolled: node.enrolled,
+        description: node.description || `Covers core ${node.name} concepts through guided lessons and hands-on exercises.`
+      };
+    }
+
+    const stats = getHashBasedStats(node.name);
+    const matchingCourse = courses.find(c => c.skillsGranted?.includes(node.name));
+    const description = node.description || matchingCourse?.description ||
+      `Covers core ${node.name} concepts through guided lessons and hands-on exercises, building candidates up to job-ready proficiency.`;
+
+    return { ...stats, description };
+  };
 
   // Course Request state
   const [reqTitle, setReqTitle] = useState('');
@@ -97,28 +248,300 @@ export default function RecruiterWorkspace({
     return nameMatch && skillMatch;
   });
 
+  // ─── AI SYNTHESIS FLOW HANDLERS ───────────────────────────────────────────
+
+  // Runs the animated "AI Synthesis Engine" overlay, then calls onDone().
+  const runJobOverlay = (onDone: () => void) => {
+    setPostJobFlow('overlay');
+    setOverlayStepIndex(-1);
+    let i = 0;
+    const interval = setInterval(() => {
+      setOverlayStepIndex(i);
+      i++;
+      if (i > JOB_OVERLAY_STEPS.length) {
+        clearInterval(interval);
+        setTimeout(onDone, 400);
+      }
+    }, 500);
+  };
+
+  // Fills the entire form with a realistic example — job title, company,
+  // salary, location, a longer role description, and matching skills — so
+  // judges/testers don't have to type anything to see the full flow.
+  const handleAutoFillDemo = () => {
+    const demoDescription = `We're looking for a versatile Full-Stack Developer to help us ship AI-powered product features end-to-end. You'll design and build responsive interfaces, architect scalable APIs, and integrate large language models directly into user-facing workflows. Day to day, you'll collaborate closely with design and product to turn rough ideas into polished, production-ready experiences, working across our Next.js frontend, Supabase-backed data layer, and CI/CD pipelines. You should be comfortable owning a feature from database schema through deployed UI, writing clean and well-tested TypeScript, and iterating quickly based on user feedback. Experience integrating third-party AI APIs and a strong eye for UI/UX polish are a big plus.`;
+
+    setJobTitle('Full-Stack Developer (Generative Products)');
+    setJobCompany('Brainwave AI');
+    setJobSalary('$120k – $155k');
+    setJobLocation('Remote (US/Canada)');
+    setJobType('Full-time');
+    setJobSkills('Next.js, React, TypeScript, Supabase, Tailwind CSS, REST APIs, Gemini API, CI/CD, UI/UX');
+    setJobDesc(demoDescription);
+    setSkillDetectMsg('');
+  };
+
+  // Scans the current Role Description text and pulls out any recognizable
+  // skill keywords, merging them into the Skills field (no duplicates).
+  const handleDetectSkillsFromDesc = () => {
+    if (!jobDesc.trim()) {
+      setSkillDetectMsg('Write a role description first, then detect skills from it.');
+      setTimeout(() => setSkillDetectMsg(''), 3000);
+      return;
+    }
+
+    const skillPool = Array.from(new Set([...allVerifiedSkills, ...COMMON_SKILL_KEYWORDS]));
+    const found = skillPool.filter(skill => {
+      const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(`(^|[^a-zA-Z0-9])${escaped}([^a-zA-Z0-9]|$)`, 'i');
+      return pattern.test(jobDesc);
+    });
+
+    if (found.length === 0) {
+      setSkillDetectMsg('No recognizable skills found in the description — try adding technology names.');
+      setTimeout(() => setSkillDetectMsg(''), 3500);
+      return;
+    }
+
+    const existing = jobSkills.split(',').map(s => s.trim()).filter(Boolean);
+    const newlyAdded = found.filter(f => !existing.some(e => e.toLowerCase() === f.toLowerCase()));
+    const merged = Array.from(new Set([...existing, ...found]));
+    setJobSkills(merged.join(', '));
+
+    if (newlyAdded.length > 0) {
+      setSkillDetectMsg(`+${newlyAdded.length} new skill${newlyAdded.length === 1 ? '' : 's'} added: ${newlyAdded.join(', ')}`);
+    } else {
+      setSkillDetectMsg(`Detected ${found.length} skill${found.length === 1 ? '' : 's'} — all already in your list.`);
+    }
+    setTimeout(() => setSkillDetectMsg(''), 4000);
+  };
+
+  // Step 1: form submit no longer calls onAddJob directly — it stashes the
+  // form data, generates the skill-node path, and plays the overlay first.
   const handlePostJobSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!jobTitle.trim() || !jobCompany.trim() || !jobDesc.trim()) return;
 
-    onAddJob({
+    const parsedSkills = jobSkills.split(',').map(s => s.trim()).filter(s => s !== '');
+
+    setPendingJob({
       title: jobTitle,
       company: jobCompany,
       description: jobDesc,
-      skillsNeeded: jobSkills.split(',').map(s => s.trim()).filter(s => s !== ''),
+      skillsNeeded: parsedSkills,
       salary: jobSalary || '$100k – $120k',
       location: jobLocation || 'Remote',
       type: jobType
     });
 
+    setSkillNodes(parsedSkills.map((name, idx) => ({ id: `${Date.now()}-${idx}`, name })));
+
+    runJobOverlay(() => setPostJobFlow('outline'));
+  };
+
+  // Cancel/discard the AI flow at any point (overlay, outline, or editor)
+  // WITHOUT calling onAddJob — nothing is written to Supabase.
+  const handleCancelPostJob = () => {
     setJobTitle('');
     setJobCompany('');
     setJobDesc('');
     setJobSkills('');
     setJobSalary('');
     setJobLocation('');
+    setSkillNodes([]);
+    setPendingJob(null);
+    setPostJobFlow('form');
+  };
+
+  // Step 2: "Modify outline" -> lightweight editor for the generated nodes
+  const handleGoToEditor = () => setPostJobFlow('editor');
+  const handleBackToOutline = () => setPostJobFlow('outline');
+
+  const removeSkillNode = (id: string) => {
+    setSkillNodes(prev => prev.filter(n => n.id !== id));
+  };
+
+  // ── "Add new skill" flow ──────────────────────────────────────────────────
+  const openAddSkillForm = () => {
+    setNewSkillName('');
+    setNewSkillDesc('');
+    setAddSkillError('');
+    setAddSkillStep('form');
+  };
+
+  const closeAddSkillForm = () => {
+    setAddSkillStep('closed');
+    setNewSkillName('');
+    setNewSkillDesc('');
+    setAddSkillError('');
+  };
+
+  // Lets a recruiter who only typed a skill name generate a starter
+  // description instead of writing one from scratch.
+  const handlePrefillSkillDescription = () => {
+    const name = newSkillName.trim();
+    if (!name) {
+      setAddSkillError('Enter a skill name first, then prefill its description.');
+      return;
+    }
+    setAddSkillError('');
+    setNewSkillDesc(
+      `Hands-on training in ${name}, covering foundational concepts, real-world application patterns, and industry best practices — building candidates up to job-ready proficiency.`
+    );
+  };
+
+  // Kicks off the course-compiler animation, then commits the fully-described
+  // skill node once it finishes.
+  const startSkillGeneration = (name: string, description: string) => {
+    const targets = computeSkillGenTargets(name, description);
+    setSkillGenTargets(targets);
+    setSkillGenCounts({ slides: 0, quizzes: 0, practicals: 0, enrolled: 0 });
+    setSkillGenBurst(false);
+    setAddSkillStep('generating');
+
+    const genSteps = ['Analysing skill description', 'Drafting lesson slides', 'Building quiz bank', 'Designing practical exercises', 'Forecasting enrollment'];
+    let stepI = 0;
+    setSkillGenStepText(genSteps[0]);
+    const stepInterval = setInterval(() => {
+      stepI++;
+      if (stepI < genSteps.length) setSkillGenStepText(genSteps[stepI]);
+      else clearInterval(stepInterval);
+    }, 340);
+
+    const duration = 1300;
+    const startTime = Date.now();
+    const countInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      setSkillGenCounts({
+        slides: Math.round(targets.slides * Math.min(1, progress * 1.3)),
+        quizzes: Math.round(targets.quizzes * Math.min(1, progress * 1.15)),
+        practicals: Math.round(targets.practicals * Math.min(1, progress * 1.05)),
+        enrolled: Math.round(targets.enrolled * progress)
+      });
+      if (progress >= 1) clearInterval(countInterval);
+    }, 40);
+
+    setTimeout(() => {
+      setSkillGenStepText('Course ready!');
+      setSkillGenBurst(true);
+    }, duration);
+
+    setTimeout(() => {
+      const newNode: SkillNode = {
+        id: `${Date.now()}`,
+        name,
+        description,
+        slides: targets.slides,
+        quizzes: targets.quizzes,
+        practicals: targets.practicals,
+        enrolled: targets.enrolled
+      };
+      setSkillNodes(prev => [...prev, newNode]);
+      closeAddSkillForm();
+      setSkillGenTargets(null);
+      setSkillGenBurst(false);
+    }, duration + 550);
+  };
+
+  const handleConfirmNewSkill = () => {
+    const name = newSkillName.trim();
+    const description = newSkillDesc.trim();
+    if (!name) {
+      setAddSkillError('Give the skill a name.');
+      return;
+    }
+    if (!description) {
+      setAddSkillError('Add a short description so we can generate its course content — or click "Prefill description".');
+      return;
+    }
+    if (skillNodes.some(n => n.name.toLowerCase() === name.toLowerCase())) {
+      setAddSkillError('This skill is already in the path.');
+      return;
+    }
+    setAddSkillError('');
+    startSkillGeneration(name, description);
+  };
+
+  // One-click preset for demos — guarded so repeated/accidental clicks
+  // (or clicking while a generation is already in flight) never add duplicates.
+  const handleQuickAddSkillPreset = (preset: { name: string; description: string }) => {
+    if (addSkillStep === 'generating') return;
+    if (skillNodes.some(n => n.name.toLowerCase() === preset.name.toLowerCase())) {
+      setAddSkillError(`"${preset.name}" is already in the path.`);
+      setAddSkillStep('form');
+      return;
+    }
+    startSkillGeneration(preset.name, preset.description);
+  };
+
+  // ── Drag-to-reorder handlers for skill nodes ──────────────────────────────
+  const handleSkillDragStart = (idx: number) => setDraggedSkillIdx(idx);
+
+  const handleSkillDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    setDragOverSkillIdx(idx);
+  };
+
+  const handleSkillDrop = (idx: number) => {
+    if (draggedSkillIdx === null || draggedSkillIdx === idx) {
+      setDraggedSkillIdx(null);
+      setDragOverSkillIdx(null);
+      return;
+    }
+    setSkillNodes(prev => {
+      const updated = [...prev];
+      const [moved] = updated.splice(draggedSkillIdx, 1);
+      updated.splice(idx, 0, moved);
+      return updated;
+    });
+    setDraggedSkillIdx(null);
+    setDragOverSkillIdx(null);
+  };
+
+  const handleSkillDragEnd = () => {
+    setDraggedSkillIdx(null);
+    setDragOverSkillIdx(null);
+  };
+
+  // Step 3: "Publish" -> this is where the REAL Supabase insert happens,
+  // via the onAddJob callback your teammate already wired up.
+  const handlePublishJob = () => {
+    if (!pendingJob) return;
+    onAddJob({
+      ...pendingJob,
+      skillsNeeded: skillNodes.map(n => n.name)
+    });
+    setPostJobFlow('publish');
+  };
+
+  // Step 4: reset everything back to a blank form
+  const handlePostAnotherJob = () => {
+    setJobTitle('');
+    setJobCompany('');
+    setJobDesc('');
+    setJobSkills('');
+    setJobSalary('');
+    setJobLocation('');
+    setSkillNodes([]);
+    setPendingJob(null);
+    setPostJobFlow('form');
     setJobSuccessMsg(true);
     setTimeout(() => setJobSuccessMsg(false), 4000);
+  };
+
+  // Delete an already-published job. Two-step confirm (click once to arm,
+  // click again to confirm) so a stray click can't wipe a live listing.
+  const handleRequestDeleteJob = (jobId: string) => setConfirmDeleteJobId(jobId);
+  const handleCancelDeleteJob = () => setConfirmDeleteJobId(null);
+  const handleConfirmDeleteJob = (jobId: string) => {
+    if (!onDeleteJob) {
+      console.warn('RecruiterWorkspace: onDeleteJob prop was not provided, so this job cannot be deleted.');
+      setConfirmDeleteJobId(null);
+      return;
+    }
+    onDeleteJob(jobId);
+    setConfirmDeleteJobId(null);
   };
 
   const handleRequestCourseSubmit = (e: React.FormEvent) => {
@@ -345,132 +768,732 @@ export default function RecruiterWorkspace({
 
       {/* 2. POST JOB LISTING TAB PANEL */}
       {activeTab === 'post-job' && (
-        <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8 space-y-6 animate-fadeIn" id="tab-panels-post-job">
-          <div>
-            <span className="text-[10px] font-mono text-indigo-600 font-black uppercase tracking-wider">VACANCY DISCOVERY GENERATOR</span>
-            <h2 className="text-xl font-bold text-slate-900 mt-1 tracking-tight">Broadcast Open Opportunities to Validated Talents</h2>
-            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-              When you post a vacancy, our platform translates required skills directly into highlight cues for the candidate terminal. Underperforming applicants will receive direct pathways to acquire missing targets.
-            </p>
-          </div>
+        <div className="max-w-2xl mx-auto animate-fadeIn" id="tab-panels-post-job">
 
-          <form onSubmit={handlePostJobSubmit} className="space-y-4 text-xs">
-            {jobSuccessMsg && (
-              <motion.div 
-                initial={{ opacity: 0, y: -5 }} 
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl font-medium"
+          {/* Top-center toast: shows AI skill-detection results */}
+          <AnimatePresence>
+            {skillDetectMsg && (
+              <motion.div
+                initial={{ opacity: 0, y: -16, x: '-50%' }}
+                animate={{ opacity: 1, y: 0, x: '-50%' }}
+                exit={{ opacity: 0, y: -16, x: '-50%' }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="fixed top-4 left-1/2 z-[60] flex items-center gap-2 bg-slate-900 text-white text-[11px] font-semibold px-4 py-2.5 rounded-full shadow-2xl max-w-[90vw]"
               >
-                Excellent! The vacancy has been logged on the shared ecosystem marketplace and matched candidates can immediately begin applying!
+                <Sparkles className="w-3.5 h-3.5 text-indigo-300 flex-shrink-0" />
+                <span className="truncate">{skillDetectMsg}</span>
               </motion.div>
             )}
+          </AnimatePresence>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Job Title</label>
-                <input 
-                  id="job-title-input"
-                  type="text" 
-                  required
-                  placeholder="e.g. LLM Interaction Specialist"
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Hiring Institution / Company Name</label>
-                <input 
-                  id="job-company-input"
-                  type="text" 
-                  required
-                  placeholder="e.g. Stripe, OpenAI"
-                  value={jobCompany}
-                  onChange={(e) => setJobCompany(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Target Annual Salary range</label>
-                <input 
-                  id="job-salary-input"
-                  type="text" 
-                  placeholder="e.g. $130k – $160K"
-                  value={jobSalary}
-                  onChange={(e) => setJobSalary(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Location / Timezone limits</label>
-                <input 
-                  id="job-location-input"
-                  type="text" 
-                  placeholder="e.g. Remote (EU timezones)"
-                  value={jobLocation}
-                  onChange={(e) => setJobLocation(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Engagement Framework</label>
-                <select 
-                  id="job-type-select"
-                  value={jobType} 
-                  onChange={(e) => setJobType(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
+          {/* ── FORM STEP ─────────────────────────────────────────────────── */}
+          {postJobFlow === 'form' && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8 space-y-6">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <span className="text-[10px] font-mono text-indigo-600 font-black uppercase tracking-wider">VACANCY DISCOVERY GENERATOR</span>
+                  <h2 className="text-xl font-bold text-slate-900 mt-1 tracking-tight">Broadcast Open Opportunities to Validated Talents</h2>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-lg">
+                    When you post a vacancy, our platform translates required skills directly into an AI-generated learning path, then highlight cues for the candidate terminal. Underperforming applicants will receive direct pathways to acquire missing targets.
+                  </p>
+                </div>
+                <button
+                  id="autofill-demo-btn"
+                  type="button"
+                  onClick={handleAutoFillDemo}
+                  className="flex items-center gap-1.5 px-3.5 py-2 border border-dashed border-indigo-300 text-indigo-600 rounded-full text-[11px] font-bold hover:bg-indigo-50 transition whitespace-nowrap"
                 >
-                  <option value="Full-time">Full-time Employee</option>
-                  <option value="Contract">Contract basis</option>
-                  <option value="Part-time">Part-time project</option>
-                  <option value="Remote">Autonomous Remote</option>
-                </select>
+                  ⚡ Auto-fill demo
+                </button>
+              </div>
+
+              <form onSubmit={handlePostJobSubmit} className="space-y-4 text-xs">
+                {jobSuccessMsg && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -5 }} 
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl font-medium"
+                  >
+                    Excellent! The vacancy has been logged on the shared ecosystem marketplace and matched candidates can immediately begin applying!
+                  </motion.div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Job Title</label>
+                    <input 
+                      id="job-title-input"
+                      type="text" 
+                      required
+                      placeholder="e.g. LLM Interaction Specialist"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Hiring Institution / Company Name</label>
+                    <input 
+                      id="job-company-input"
+                      type="text" 
+                      required
+                      placeholder="e.g. Stripe, OpenAI"
+                      value={jobCompany}
+                      onChange={(e) => setJobCompany(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Target Annual Salary range</label>
+                    <input 
+                      id="job-salary-input"
+                      type="text" 
+                      placeholder="e.g. $130k – $160K"
+                      value={jobSalary}
+                      onChange={(e) => setJobSalary(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Location / Timezone limits</label>
+                    <input 
+                      id="job-location-input"
+                      type="text" 
+                      placeholder="e.g. Remote (EU timezones)"
+                      value={jobLocation}
+                      onChange={(e) => setJobLocation(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Engagement Framework</label>
+                    <select 
+                      id="job-type-select"
+                      value={jobType} 
+                      onChange={(e) => setJobType(e.target.value as any)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50"
+                    >
+                      <option value="Full-time">Full-time Employee</option>
+                      <option value="Contract">Contract basis</option>
+                      <option value="Part-time">Part-time project</option>
+                      <option value="Remote">Autonomous Remote</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Core Required Technical Core Competencies</label>
+                  <input 
+                    id="job-skills-input"
+                    type="text" 
+                    required
+                    placeholder="Next.js, React, SSR, Gemini API (comma separated)"
+                    value={jobSkills}
+                    onChange={(e) => setJobSkills(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50 font-mono text-[11px]"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Please enter the exact skill names that match the academic available courses for maximum pipeline correlation!</p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <label className="block font-semibold text-slate-700">Role Description / Scope of Work</label>
+                    <button
+                      type="button"
+                      onClick={handleDetectSkillsFromDesc}
+                      className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition whitespace-nowrap"
+                    >
+                      🔍 Detect skills from description
+                    </button>
+                  </div>
+                  <textarea 
+                    id="job-desc-input"
+                    required
+                    rows={5}
+                    placeholder="Write the responsibilities, expected daily workflow, and strategic metrics details of the employee..."
+                    value={jobDesc}
+                    onChange={(e) => setJobDesc(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50 leading-relaxed"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Tip: write the description first, then click "Detect skills" to auto-fill the field above from it.</p>
+                </div>
+
+                <div className="pt-3">
+                  <button 
+                    id="submit-job-btn"
+                    type="submit"
+                    className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-slate-900 shadow-md shadow-indigo-100 text-white font-bold transition-all text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <Send className="w-4 h-4" /> Finalize Job & Enlist in Shared Feed
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ── AI SYNTHESIS OVERLAY STEP ─────────────────────────────────── */}
+          {postJobFlow === 'overlay' && (
+            <div className="flex items-center justify-center py-10">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full max-w-sm"
+              >
+                <div
+                  className="relative rounded-2xl overflow-hidden"
+                  style={{ background: 'linear-gradient(160deg, #0f0c2e 0%, #1a1147 60%, #0f0c2e 100%)' }}
+                >
+                  {/* Floating aurora glow blobs */}
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div
+                      className="absolute -top-10 -left-10 w-40 h-40 rounded-full blur-3xl opacity-25"
+                      style={{ background: '#4F46E5', animation: 'auroraFloat1 6s ease-in-out infinite' }}
+                    />
+                    <div
+                      className="absolute -bottom-12 -right-8 w-40 h-40 rounded-full blur-3xl opacity-25"
+                      style={{ background: '#7C3AED', animation: 'auroraFloat2 7s ease-in-out infinite' }}
+                    />
+                    <div
+                      className="absolute top-1/2 left-1/2 w-32 h-32 rounded-full blur-3xl opacity-15"
+                      style={{ background: '#34D399', animation: 'auroraPulse 5s ease-in-out infinite', transform: 'translate(-50%,-50%)' }}
+                    />
+                  </div>
+
+                  {/* Faint grid overlay */}
+                  <div
+                    className="absolute inset-0 opacity-20 pointer-events-none"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(rgba(129,140,248,0.15) 1px,transparent 1px),linear-gradient(90deg,rgba(129,140,248,0.15) 1px,transparent 1px)',
+                      backgroundSize: '28px 28px'
+                    }}
+                  />
+
+                  <div className="relative p-10 text-center">
+                    {/* Animated AI core */}
+                    <div className="relative w-20 h-20 mx-auto mb-6">
+                      {/* Pulsing outer glow */}
+                      <motion.div
+                        className="absolute inset-0 rounded-full"
+                        style={{ background: 'radial-gradient(circle, rgba(129,140,248,0.55) 0%, transparent 70%)' }}
+                        animate={{ scale: [1, 1.5, 1], opacity: [0.7, 0.2, 0.7] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      />
+                      {/* Outer rotating ring */}
+                      <motion.div
+                        className="absolute inset-0 rounded-full border-2"
+                        style={{ borderColor: 'transparent', borderTopColor: '#818CF8', borderRightColor: '#818CF8' }}
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
+                      />
+                      {/* Inner counter-rotating ring */}
+                      <motion.div
+                        className="absolute inset-2.5 rounded-full border-2"
+                        style={{ borderColor: 'transparent', borderBottomColor: '#C4B5FD', borderLeftColor: '#C4B5FD' }}
+                        animate={{ rotate: -360 }}
+                        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                      />
+                      {/* Orbiting spark */}
+                      <motion.div
+                        className="absolute inset-0"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 3.5, repeat: Infinity, ease: 'linear' }}
+                      >
+                        <div
+                          className="absolute -top-0.5 left-1/2 w-2 h-2 -ml-1 rounded-full bg-emerald-400"
+                          style={{ boxShadow: '0 0 10px 3px rgba(52,211,153,0.7)' }}
+                        />
+                      </motion.div>
+                      {/* Center icon */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <motion.div
+                          animate={{ scale: [1, 1.12, 1] }}
+                          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                          className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
+                          style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
+                        >
+                          <Sparkles className="w-5 h-5 text-white" />
+                        </motion.div>
+                      </div>
+                    </div>
+
+                    <div className="text-white font-bold text-lg mb-1.5 tracking-tight">AI Synthesis Engine Active</div>
+                    <div className="text-xs mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      Generating your personalised learning path...
+                    </div>
+
+                    {/* Animated progress bar */}
+                    <div className="mb-6">
+                      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{ background: 'linear-gradient(90deg, #4F46E5, #7C3AED, #34D399)' }}
+                          animate={{
+                            width: `${Math.min(100, Math.max(4, ((overlayStepIndex + 1) / JOB_OVERLAY_STEPS.length) * 100))}%`
+                          }}
+                          transition={{ duration: 0.4, ease: 'easeOut' }}
+                        />
+                      </div>
+                      <div className="text-[10px] text-white/40 mt-1.5 font-mono tracking-wider">
+                        {Math.min(100, Math.max(0, Math.round(((overlayStepIndex + 1) / JOB_OVERLAY_STEPS.length) * 100)))}%
+                      </div>
+                    </div>
+
+                    {/* Step list */}
+                    <div className="text-left flex flex-col gap-2">
+                      {JOB_OVERLAY_STEPS.map((step, i) => {
+                        const done = i < overlayStepIndex;
+                        const active = i === overlayStepIndex;
+                        return (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: done || active ? 1 : 0.3, x: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="flex items-center gap-3 text-sm"
+                            style={{ color: done ? 'rgba(255,255,255,0.9)' : active ? '#a5b4fc' : 'rgba(255,255,255,0.3)' }}
+                          >
+                            <motion.div
+                              className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0"
+                              style={{
+                                borderColor: done ? '#34D399' : active ? '#a5b4fc' : 'rgba(255,255,255,0.2)',
+                                background: done ? '#34D399' : 'transparent'
+                              }}
+                              animate={active ? { scale: [1, 1.3, 1] } : { scale: 1 }}
+                              transition={{ duration: 0.7, repeat: active ? Infinity : 0, ease: 'easeInOut' }}
+                            >
+                              {done && (
+                                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 20 }}>
+                                  <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                                </motion.div>
+                              )}
+                              {active && !done && <div className="w-1.5 h-1.5 rounded-full bg-indigo-300" />}
+                            </motion.div>
+                            <span>{step}</span>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-center text-xs text-slate-400 mt-3">This usually takes a few seconds</p>
+                <div className="text-center mt-2">
+                  <button
+                    onClick={handleCancelPostJob}
+                    className="text-[11px] font-semibold text-slate-400 hover:text-rose-500 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+              <style>{`
+                @keyframes auroraFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(18px,14px)} }
+                @keyframes auroraFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-16px,-18px)} }
+                @keyframes auroraPulse { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.35)} }
+              `}</style>
+            </div>
+          )}
+
+          {/* ── PATH OUTLINE REVIEW STEP ──────────────────────────────────── */}
+          {postJobFlow === 'outline' && pendingJob && (
+            <div className="relative bg-white rounded-3xl border border-slate-100 shadow-lg shadow-slate-200/50">
+              {/* Accent gradient bar */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-indigo-600 via-purple-500 to-emerald-400 rounded-t-3xl" />
+
+              <div className="p-6 sm:p-8">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3 flex-wrap mb-6">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                      <span>⚡ Path Generated</span>
+                    </h2>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="text-sm text-slate-500 font-medium">{pendingJob.title}</span>
+                      <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full">
+                        ~{skillNodes.length * 3}h
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full whitespace-nowrap">
+                    📋 Review before publishing
+                  </span>
+                </div>
+
+                {/* Stats pill row */}
+                <div className="flex items-center justify-around gap-4 bg-slate-50 border border-slate-100 rounded-full px-6 py-3.5 mb-6 flex-wrap">
+                  {[[`${skillNodes.length}`, 'Skill nodes'], [`${skillNodes.length * 2}`, 'Lesson slides'], [`~${skillNodes.length * 3}h`, 'Est. duration']].map(([num, label]) => (
+                    <div key={label} className="flex items-baseline gap-1.5">
+                      <span className="text-xl font-black text-indigo-600">{num}</span>
+                      <span className="text-xs text-slate-500 font-medium">{label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Skill node grid */}
+                {skillNodes.length > 0 ? (
+                  <div
+                    className="grid gap-3 mb-6"
+                    style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))' }}
+                  >
+                    {skillNodes.map(n => {
+                      const insights = getSkillNodeInsights(n);
+                      return (
+                        <div key={n.id} className="group relative">
+                          <div className="flex items-center justify-center gap-2 bg-slate-50 border border-slate-100 rounded-full px-3 py-2.5 text-xs font-bold text-slate-800 hover:bg-indigo-50 hover:border-indigo-200 hover:-translate-y-0.5 hover:shadow-sm transition-all cursor-default">
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: getSkillDotColor(n.name) }} />
+                            {n.name}
+                          </div>
+
+                          {/* Hover tooltip: course preview */}
+                          <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-64 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 origin-bottom z-50">
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-4 text-left">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getSkillDotColor(n.name) }} />
+                                <span className="text-white text-xs font-bold">{n.name}</span>
+                              </div>
+                              <p className="text-[10.5px] text-slate-400 leading-relaxed mb-3">
+                                {insights.description}
+                              </p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-300">
+                                  <BookOpen className="w-3 h-3 text-indigo-400 flex-shrink-0" />
+                                  {insights.slides} lecture slides
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-300">
+                                  <HelpCircle className="w-3 h-3 text-purple-400 flex-shrink-0" />
+                                  {insights.quizzes} {insights.quizzes === 1 ? 'quiz' : 'quizzes'}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-300">
+                                  <Clipboard className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                                  {insights.practicals} practical {insights.practicals === 1 ? 'test' : 'tests'}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-300">
+                                  <Users className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                                  {insights.enrolled} enrolled
+                                </div>
+                              </div>
+                            </div>
+                            {/* Little pointer triangle */}
+                            <div className="w-2.5 h-2.5 bg-slate-900 border-r border-b border-slate-800 rotate-45 mx-auto -mt-1.5" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic mb-6">No specific skills were listed — candidates will see a general opening.</p>
+                )}
+
+                {/* Actions */}
+                <div className="flex justify-between items-center gap-3 pt-5 border-t border-slate-100 flex-wrap">
+                  <button
+                    onClick={handleCancelPostJob}
+                    className="px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-rose-500 transition"
+                  >
+                    Cancel
+                  </button>
+                  <div className="flex gap-3 flex-wrap">
+                    <button
+                      id="modify-outline-btn"
+                      onClick={handleGoToEditor}
+                      className="px-6 py-2.5 border border-slate-200 rounded-full text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-indigo-200 transition flex items-center gap-1.5"
+                    >
+                      ✎ Modify outline
+                    </button>
+                    <button
+                      id="confirm-publish-btn"
+                      onClick={handlePublishJob}
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-slate-900 text-white text-xs font-bold rounded-full transition flex items-center gap-1.5 shadow-md shadow-indigo-100"
+                    >
+                      ✓ Looks good — Publish
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
+          )}
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Core Required Technical Core Competencies</label>
-              <input 
-                id="job-skills-input"
-                type="text" 
-                required
-                placeholder="Next.js, React, SSR, Gemini API (comma separated)"
-                value={jobSkills}
-                onChange={(e) => setJobSkills(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50 font-mono text-[11px]"
-              />
-              <p className="text-[10px] text-slate-400 mt-1">Please enter the exact skill names that match the academic available courses for maximum pipeline correlation!</p>
+          {/* ── LIGHTWEIGHT PATH EDITOR STEP ──────────────────────────────── */}
+          {postJobFlow === 'editor' && pendingJob && (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8 space-y-5">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleBackToOutline}
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-500 hover:bg-slate-100"
+                >
+                  ← Back
+                </button>
+                <h2 className="text-sm font-bold text-slate-900">Syllabus Path Editor</h2>
+                <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-bold">{pendingJob.title}</span>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1.5 text-xs">Skill nodes in this path</label>
+                <div className="flex flex-wrap gap-2.5 border border-slate-200 rounded-xl px-3 py-3 min-h-[54px] bg-slate-50/50">
+                  {skillNodes.map((n, idx) => (
+                    <div
+                      key={n.id}
+                      draggable
+                      onDragStart={() => handleSkillDragStart(idx)}
+                      onDragOver={e => handleSkillDragOver(e, idx)}
+                      onDrop={() => handleSkillDrop(idx)}
+                      onDragEnd={handleSkillDragEnd}
+                      className={`group relative flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-[11px] font-semibold pl-3 pr-2 py-1.5 rounded-full cursor-grab active:cursor-grabbing select-none transition-all duration-150 hover:scale-110 hover:shadow-md hover:z-10 ${
+                        draggedSkillIdx === idx ? 'opacity-40' : ''
+                      } ${dragOverSkillIdx === idx && draggedSkillIdx !== idx ? 'ring-2 ring-indigo-400' : ''}`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: getSkillDotColor(n.name) }} />
+                      {n.name}
+                      <button
+                        onClick={() => removeSkillNode(n.id)}
+                        aria-label={`Remove ${n.name}`}
+                        className="w-3.5 h-3.5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:text-rose-600 hover:bg-white/60"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {skillNodes.length === 0 && (
+                    <span className="text-[11px] text-slate-400 italic py-1.5">No skill nodes yet — add one below.</span>
+                  )}
+                </div>
+                <p className="text-[10px] text-indigo-500 mt-1.5">Drag a node to reorder the path. Hover a node to remove it.</p>
+              </div>
+
+              {/* ── Add New Skill (standalone, not nested in the chip row) ──── */}
+              <div>
+                {addSkillStep === 'closed' && (
+                  <button
+                    onClick={openAddSkillForm}
+                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-indigo-200 text-indigo-600 rounded-xl py-3 text-xs font-bold hover:bg-indigo-50 hover:border-indigo-300 transition"
+                  >
+                    <Plus className="w-4 h-4" /> Add New Skill
+                  </button>
+                )}
+
+                {addSkillStep === 'form' && (
+                  <div className="border border-indigo-100 rounded-xl p-4 bg-indigo-50/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Add a new skill node</span>
+                      <button onClick={closeAddSkillForm} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* One-click presets for judges/demos */}
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Demo shortcuts</p>
+                      <div className="flex flex-wrap gap-2">
+                        {QUICK_ADD_SKILL_PRESETS.map(preset => (
+                          <button
+                            key={preset.name}
+                            onClick={() => handleQuickAddSkillPreset(preset)}
+                            disabled={addSkillStep !== 'form'}
+                            className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-3 py-1.5 hover:bg-purple-100 transition disabled:opacity-50"
+                          >
+                            ⚡ Quick add: {preset.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 mb-1">Skill name</label>
+                      <input
+                        value={newSkillName}
+                        onChange={e => setNewSkillName(e.target.value)}
+                        placeholder="e.g. Kubernetes"
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] font-bold text-slate-600">Skill description</label>
+                        <button
+                          onClick={handlePrefillSkillDescription}
+                          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition"
+                        >
+                          ✨ Prefill description
+                        </button>
+                      </div>
+                      <textarea
+                        value={newSkillDesc}
+                        onChange={e => setNewSkillDesc(e.target.value)}
+                        rows={3}
+                        placeholder="Briefly describe what this skill covers — we'll generate lesson slides, quizzes, and practical tests from it."
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                      />
+                    </div>
+
+                    {addSkillError && <p className="text-[10px] text-rose-600 font-semibold">{addSkillError}</p>}
+
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={closeAddSkillForm}
+                        className="flex-1 py-2 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-600 hover:bg-white transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleConfirmNewSkill}
+                        className="flex-1 py-2 bg-indigo-600 hover:bg-slate-900 text-white rounded-lg text-[11px] font-bold transition"
+                      >
+                        Confirm & Generate
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {addSkillStep === 'generating' && (
+                  <div
+                    className="relative rounded-2xl p-8 text-center overflow-hidden"
+                    style={{ background: 'linear-gradient(160deg, #1a0f08 0%, #2b1509 55%, #1a0f08 100%)' }}
+                  >
+                    <div className="relative w-24 h-24 mx-auto mb-6">
+                      {/* Radar ping rings — deliberately different mechanic from the job-post overlay */}
+                      {[0, 1, 2].map(i => (
+                        <motion.div
+                          key={i}
+                          className="absolute inset-0 rounded-full border-2"
+                          style={{ borderColor: '#F59E0B' }}
+                          initial={{ scale: 0.4, opacity: 0.8 }}
+                          animate={{ scale: 1.8, opacity: 0 }}
+                          transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.5, ease: 'easeOut' }}
+                        />
+                      ))}
+                      {/* Wobbling core badge */}
+                      <motion.div
+                        className="absolute inset-0 flex items-center justify-center"
+                        animate={{ rotate: [0, 12, -12, 0] }}
+                        transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <div
+                          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                          style={{ background: 'linear-gradient(135deg, #F59E0B, #F43F5E)' }}
+                        >
+                          <Sparkles className="w-7 h-7 text-white" />
+                        </div>
+                      </motion.div>
+
+                      {/* Confetti burst on completion */}
+                      <AnimatePresence>
+                        {skillGenBurst &&
+                          Array.from({ length: 12 }).map((_, i) => {
+                            const angle = (i / 12) * Math.PI * 2;
+                            const dist = 55 + (i % 3) * 14;
+                            return (
+                              <motion.div
+                                key={i}
+                                className="absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full"
+                                style={{ background: ['#F59E0B', '#F43F5E', '#34D399', '#818CF8'][i % 4] }}
+                                initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                                animate={{ x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, opacity: 0, scale: 0 }}
+                                transition={{ duration: 0.65, ease: 'easeOut' }}
+                              />
+                            );
+                          })}
+                      </AnimatePresence>
+                    </div>
+
+                    <div className="text-white font-bold text-sm mb-1.5">Generating course for "{newSkillName}"</div>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={skillGenStepText}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-[11px] mb-6"
+                        style={{ color: 'rgba(255,255,255,0.55)' }}
+                      >
+                        {skillGenStepText}...
+                      </motion.div>
+                    </AnimatePresence>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: 'Lecture slides', value: skillGenCounts.slides, Icon: BookOpen, color: '#FBBF24' },
+                        { label: 'Quizzes', value: skillGenCounts.quizzes, Icon: HelpCircle, color: '#FB7185' },
+                        { label: 'Practical tests', value: skillGenCounts.practicals, Icon: Clipboard, color: '#34D399' },
+                        { label: 'Forecast enrolled', value: skillGenCounts.enrolled, Icon: Users, color: '#A78BFA' }
+                      ].map(stat => (
+                        <div key={stat.label} className="bg-white/5 border border-white/10 rounded-xl p-3 text-left">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <stat.Icon className="w-3.5 h-3.5" style={{ color: stat.color }} />
+                            <span className="text-[9px] text-white/40 uppercase tracking-wider font-mono">{stat.label}</span>
+                          </div>
+                          <motion.div
+                            key={stat.value}
+                            initial={{ scale: 1.3 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                            className="text-xl font-black text-white"
+                          >
+                            {stat.value}
+                          </motion.div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2 flex-wrap">
+                <button
+                  onClick={handleCancelPostJob}
+                  className="px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-rose-500 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBackToOutline}
+                  className="flex-1 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Save & review outline
+                </button>
+                <button
+                  onClick={handlePublishJob}
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5"
+                >
+                  🚀 Publish path
+                </button>
+              </div>
             </div>
+          )}
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Role Description / Scope of Work</label>
-              <textarea 
-                id="job-desc-input"
-                required
-                rows={5}
-                placeholder="Write the responsibilities, expected daily workflow, and strategic metrics details of the employee..."
-                value={jobDesc}
-                onChange={(e) => setJobDesc(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 bg-slate-50 leading-relaxed"
-              />
-            </div>
-
-            <div className="pt-3">
-              <button 
-                id="submit-job-btn"
-                type="submit"
-                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-slate-900 shadow-md shadow-indigo-100 text-white font-bold transition-all text-xs flex items-center justify-center gap-1.5"
+          {/* ── PUBLISH CONFIRMATION STEP ─────────────────────────────────── */}
+          {postJobFlow === 'publish' && pendingJob && (
+            <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center shadow-sm">
+              <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center text-2xl mx-auto mb-4">
+                <CheckCircle2 className="w-7 h-7 text-emerald-500" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-900 mb-1.5">Job listing is live</h2>
+              <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+                Your vacancy and its learning path are now visible to all verified candidates on the marketplace.
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center mb-6">
+                {[pendingJob.title, `${skillNodes.length} skill nodes`, `~${skillNodes.length * 3}h path`, pendingJob.company].map(tag => (
+                  <span key={tag} className="text-[11px] font-semibold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full">{tag}</span>
+                ))}
+              </div>
+              <button
+                id="post-another-job-btn"
+                onClick={handlePostAnotherJob}
+                className="w-full py-3 bg-indigo-600 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5"
               >
-                <Send className="w-4 h-4" /> Finalize Job & Enlist in Shared Feed
+                <Plus className="w-4 h-4" /> Post another job
               </button>
             </div>
-          </form>
+          )}
         </div>
       )}
 
@@ -703,6 +1726,34 @@ export default function RecruiterWorkspace({
                   <div className="pt-3 border-t border-slate-200/50 flex justify-between items-center text-[10px] text-slate-450 font-mono">
                     <span>{job.type} • {job.location}</span>
                     <span className="font-bold text-slate-700">{job.salary}</span>
+                  </div>
+
+                  {/* Delete listing (two-step confirm) */}
+                  <div className="pt-1">
+                    {confirmDeleteJobId === job.id ? (
+                      <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                        <span className="text-[10px] font-bold text-rose-700 flex-1">Delete this listing?</span>
+                        <button
+                          onClick={() => handleConfirmDeleteJob(job.id)}
+                          className="text-[10px] font-bold text-white bg-rose-600 hover:bg-rose-700 px-2.5 py-1 rounded-md transition"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={handleCancelDeleteJob}
+                          className="text-[10px] font-bold text-slate-500 hover:text-slate-700 px-2 py-1 transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleRequestDeleteJob(job.id)}
+                        className="w-full flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-rose-600 hover:bg-rose-50 py-1.5 rounded-lg transition"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete listing
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

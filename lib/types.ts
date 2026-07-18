@@ -50,6 +50,32 @@ export interface Candidate {
   isCurrentUser?: boolean;
 }
 
+export interface SyllabusSlide {
+  id: string;
+  title: string;
+  type: 'intro' | 'code' | 'concept';
+  content: string;
+  codeSnippet?: string;
+}
+
+export interface SyllabusQuiz {
+  question: string;
+  options: string[];
+  correctOptionIndex: number;
+}
+
+export interface SyllabusNode {
+  id: string;
+  name: string;
+  description: string;
+  x: number;
+  y: number;
+  prerequisites: string[];
+  slides: SyllabusSlide[];
+  quiz: SyllabusQuiz;
+  evaluationQuestions: string[];
+}
+
 export interface Job {
   id: string;
   title: string;
@@ -62,6 +88,7 @@ export interface Job {
   location: string;
   datePosted: string;
   applicantsCount: number;
+  syllabusPath?: SyllabusNode[];
 }
 
 export interface CourseRequest {
@@ -75,3 +102,4 @@ export interface CourseRequest {
   status: 'Pending' | 'Approved';
   dateRequested: string;
 }
+
