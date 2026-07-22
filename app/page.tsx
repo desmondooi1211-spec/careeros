@@ -16,7 +16,7 @@ import {
   INITIAL_REQUESTS 
 } from '@/lib/mockData';
 import { generateSyllabusForJob } from '@/lib/syllabusGenerator';
-import { Course, Candidate, Job, CourseRequest, Project } from '@/lib/types';
+import { Course, Candidate, Job, CourseRequest, Project, BackgroundReportState } from '@/lib/types';
 import { 
   Layers, 
   Sparkles, 
@@ -58,6 +58,7 @@ export default function Home() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [courseRequests, setCourseRequests] = useState<CourseRequest[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
+  const [backgroundReports, setBackgroundReports] = useState<Record<string, BackgroundReportState>>({});
 
   // Track state initialized
   const [isLoaded, setIsLoaded] = useState(false);
@@ -215,6 +216,10 @@ export default function Home() {
       if (storedAppId) setAppliedJobIds(JSON.parse(storedAppId));
       else setAppliedJobIds([]);
 
+      const storedReports = localStorage.getItem('career_os_background_reports');
+      if (storedReports) setBackgroundReports(JSON.parse(storedReports));
+      else setBackgroundReports({});
+
     } catch (e) {
       console.error('Failed to load CareerOS storage:', e);
       // Fallback
@@ -236,10 +241,11 @@ export default function Home() {
       localStorage.setItem('career_os_jobs', JSON.stringify(jobs));
       localStorage.setItem('career_os_requests', JSON.stringify(courseRequests));
       localStorage.setItem('career_os_applied_ids', JSON.stringify(appliedJobIds));
+      localStorage.setItem('career_os_background_reports', JSON.stringify(backgroundReports));
     } catch (e) {
       console.error('Failed to save state to localStorage:', e);
     }
-  }, [courses, candidates, jobs, courseRequests, appliedJobIds, isLoaded]);
+  }, [courses, candidates, jobs, courseRequests, appliedJobIds, backgroundReports, isLoaded]);
 
   // Reset helper
   const handleResetWorkspace = () => {
@@ -249,12 +255,14 @@ export default function Home() {
       localStorage.removeItem('career_os_jobs');
       localStorage.removeItem('career_os_requests');
       localStorage.removeItem('career_os_applied_ids');
+      localStorage.removeItem('career_os_background_reports');
       
       setCourses(INITIAL_COURSES);
       setCandidates(INITIAL_CANDIDATES);
       setJobs(INITIAL_JOBS);
       setCourseRequests(INITIAL_REQUESTS);
       setAppliedJobIds([]);
+      setBackgroundReports({});
       setActivePage('marketplace');
       
       // Trigger subtle page reload
@@ -431,6 +439,50 @@ export default function Home() {
   };
 
   // RECRUITER ACTIONS
+  const handleRunBackgroundSummary = (candidateId: string) => {
+    setBackgroundReports(prev => ({
+      ...prev,
+      [candidateId]: {
+        candidateId,
+        reportStatus: 'done' as const,
+        reportUrl: `/assets/background-reports/${candidateId}.pdf`,
+      },
+    }));
+  };
+
+  const handleStartBackgroundSummary = (candidateId: string) => {
+    setBackgroundReports(prev => ({
+      ...prev,
+      [candidateId]: {
+        candidateId,
+        reportStatus: 'running' as const,
+        reportUrl: '',
+      },
+    }));
+  };
+
+  const handleResetBackgroundReport = (candidateId: string) => {
+    setBackgroundReports(prev => ({
+      ...prev,
+      [candidateId]: {
+        candidateId,
+        reportStatus: 'idle' as const,
+        reportUrl: '',
+      },
+    }));
+  };
+
+  const handleReRunBackgroundSummary = (candidateId: string) => {
+    setBackgroundReports(prev => ({
+      ...prev,
+      [candidateId]: {
+        candidateId,
+        reportStatus: 'running' as const,
+        reportUrl: '',
+      },
+    }));
+  };
+
   const handleAddJob = (jobData: Omit<Job, 'id' | 'applicantsCount' | 'datePosted' | 'logo'>) => {
     const emojis = ['⚡', '▲', '🪐', '⚙️', '💎', '🛡️', '🧬', '🔮'];
     const randomBadge = emojis[Math.floor(Math.random() * emojis.length)];
@@ -924,6 +976,11 @@ Key Requirements:
                     onClearInitialFocusedCandidate={() => setPreselectedCandidate(null)}
                     activeTab={recruiterTab}
                     setActiveTab={setRecruiterTab}
+                    backgroundReports={backgroundReports}
+                    onStartBackgroundSummary={handleStartBackgroundSummary}
+                    onRunBackgroundSummary={handleRunBackgroundSummary}
+                    onResetBackgroundReport={handleResetBackgroundReport}
+                    onReRunBackgroundSummary={handleReRunBackgroundSummary}
                   />
                 )}
 

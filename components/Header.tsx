@@ -26,12 +26,12 @@ export default function Header({
         {/* Brand Logo and Title */}
         <div className="flex items-center space-x-2.5" id="brand-logo-container">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-sm shadow-indigo-100">
-            <Layers className="w-4.5 h-4.5" />
+            <Layers className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center space-x-1.5">
               <span className="font-sans font-extrabold text-base tracking-tight text-slate-900">CareerOS</span>
-              <span className="hidden sm:inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+              <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
                 Unified Ecosystem
               </span>
             </div>

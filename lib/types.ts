@@ -103,3 +103,9 @@ export interface CourseRequest {
   dateRequested: string;
 }
 
+export interface BackgroundReportState {
+  candidateId: string;
+  reportStatus: 'idle' | 'running' | 'done';
+  reportUrl: string;
+}
+

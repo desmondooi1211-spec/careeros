@@ -28,10 +28,12 @@ import {
   GripVertical,
   Trash,
   HelpCircle,
+  FileText,
 } from 'lucide-react';
-import { Candidate, Course, Job, CourseRequest } from '@/lib/types';
+import { Candidate, Course, Job, CourseRequest, BackgroundReportState } from '@/lib/types';
 import { SKILL_TREES, getPathConnections, renderSkillIcon } from './CandidateWorkspace';
 import SyllabusPathEditor from './SyllabusPathEditor'
+import BackgroundSummaryModal from './BackgroundSummaryModal';
 
 interface RecruiterWorkspaceProps {
   candidates: Candidate[];
@@ -46,6 +48,11 @@ interface RecruiterWorkspaceProps {
   onClearInitialFocusedCandidate?: () => void;
   activeTab: 'talent' | 'post-job' | 'curriculum' | 'my-jobs';
   setActiveTab: (tab: 'talent' | 'post-job' | 'curriculum' | 'my-jobs') => void;
+  backgroundReports: Record<string, BackgroundReportState>;
+  onStartBackgroundSummary: (candidateId: string) => void;
+  onRunBackgroundSummary: (candidateId: string) => void;
+  onResetBackgroundReport: (candidateId: string) => void;
+  onReRunBackgroundSummary: (candidateId: string) => void;
 }
 
 // ─── AI SYNTHESIS FLOW CONSTANTS ────────────────────────────────────────────
@@ -110,7 +117,12 @@ export default function RecruiterWorkspace({
   initialFocusedCandidate,
   onClearInitialFocusedCandidate,
   activeTab,
-  setActiveTab
+  setActiveTab,
+  backgroundReports,
+  onStartBackgroundSummary,
+  onRunBackgroundSummary,
+  onResetBackgroundReport,
+  onReRunBackgroundSummary,
 }: RecruiterWorkspaceProps) {
   const [candidateSearch, setCandidateSearch] = useState('');
   const [selectedSkillFilter, setSelectedSkillFilter] = useState('All');
@@ -233,6 +245,7 @@ export default function RecruiterWorkspace({
   // Assess candidate fit drawer/modal
   const [focusedCandidate, setFocusedCandidate] = useState<Candidate | null>(null);
   const [assessAgainstJob, setAssessAgainstJob] = useState<string>(jobs[0]?.id || '');
+  const [backgroundSummaryCandidate, setBackgroundSummaryCandidate] = useState<Candidate | null>(null);
 
   // ── NEW: Job Detail View (My Jobs → click job card) ──────────────────────
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -1000,25 +1013,25 @@ export default function RecruiterWorkspace({
                   )}
                 </div>
 
-                {/* Match assessment CTAs */}
+                {/* AI Background Summary */}
                 <div className="pt-6 mt-6 border-t border-slate-50 flex items-center justify-between gap-3">
                   <button
-                    id={`assess-fit-${cand.id}`}
                     onClick={() => {
-                      setFocusedCandidate(cand);
-                      if (jobs.length > 0) setAssessAgainstJob(jobs[0].id);
+                      const report = backgroundReports[cand.id];
+                      if (!report || report.reportStatus === 'idle') {
+                        onStartBackgroundSummary(cand.id);
+                      }
+                      setBackgroundSummaryCandidate(cand);
                     }}
-                    className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className={`flex-1 font-bold text-xs py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      backgroundReports[cand.id]?.reportStatus === 'done'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100'
+                        : 'bg-slate-900 hover:bg-slate-800 text-white'
+                    }`}
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Run Algorithmic Fit Test</span>
+                    <FileText className={`w-3.5 h-3.5 ${backgroundReports[cand.id]?.reportStatus === 'done' ? 'text-emerald-500' : 'text-amber-400'}`} />
+                    <span>{backgroundReports[cand.id]?.reportStatus === 'done' ? 'View Report' : 'Run Background Summary'}</span>
                   </button>
-                  <a 
-                    href={`mailto:${cand.email}`}
-                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all"
-                  >
-                    Email
-                  </a>
                 </div>
                 {/* Drag hint */}
                 <p className="text-[10px] text-slate-400 text-center mt-2 flex items-center justify-center gap-1">
@@ -2255,6 +2268,26 @@ export default function RecruiterWorkspace({
                                       }`}>{card.status}</span>
                                     </div>
                                     <p className="text-xs text-slate-600 mt-3 leading-relaxed italic flex-1 overflow-hidden line-clamp-3">"{card.bio}"</p>
+                                    {/* AI Background Summary */}
+                                    <div className="pt-3 mt-3 border-t border-slate-50 flex items-center justify-between gap-3">
+                                      <button
+                                        onClick={() => {
+                                          const report = backgroundReports[card.id];
+                                          if (!report || report.reportStatus === 'idle') {
+                                            onStartBackgroundSummary(card.id);
+                                          }
+                                          setBackgroundSummaryCandidate(card);
+                                        }}
+                                        className={`flex-1 font-bold text-xs py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                          backgroundReports[card.id]?.reportStatus === 'done'
+                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100'
+                                            : 'bg-slate-900 hover:bg-slate-800 text-white'
+                                        }`}
+                                      >
+                                        <FileText className={`w-3.5 h-3.5 ${backgroundReports[card.id]?.reportStatus === 'done' ? 'text-emerald-500' : 'text-amber-400'}`} />
+                                        <span>{backgroundReports[card.id]?.reportStatus === 'done' ? 'View Report' : 'Run Background Summary'}</span>
+                                      </button>
+                                    </div>
                                     <div className="mt-3 space-y-1">
                                       <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
                                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Verified Skills
@@ -2347,6 +2380,19 @@ export default function RecruiterWorkspace({
                                 fit >= 40 ? 'bg-amber-100 text-amber-700' :
                                            'bg-rose-100 text-rose-700'
                               }`}>{fit}% fit</span>
+                              <button
+                                onClick={() => {
+                                  const report = backgroundReports[c.id];
+                                  if (!report || report.reportStatus === 'idle') {
+                                    onStartBackgroundSummary(c.id);
+                                  }
+                                  setBackgroundSummaryCandidate(c);
+                                }}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100"
+                              >
+                                <FileText className="w-3 h-3" />
+                                <span>AI Summary</span>
+                              </button>
                               {isShortlisted && (
                                 <div className="flex items-center gap-2">
                                   <span className="text-[10px] font-bold text-emerald-600">✓ Shortlisted</span>
@@ -2788,11 +2834,40 @@ export default function RecruiterWorkspace({
                 >
                   Invite to Fast-Track Hiring Conversation
                 </a>
+                <button
+                  onClick={() => {
+                    const report = backgroundReports[focusedCandidate.id];
+                    if (!report || report.reportStatus === 'idle') {
+                      onStartBackgroundSummary(focusedCandidate.id);
+                    }
+                    setBackgroundSummaryCandidate(focusedCandidate);
+                  }}
+                  className={`px-4 py-3 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 flex-shrink-0 ${
+                    backgroundReports[focusedCandidate.id]?.reportStatus === 'done'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  {backgroundReports[focusedCandidate.id]?.reportStatus === 'done'
+                    ? 'View Report'
+                    : 'Run Background Summary'}
+                </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* Background Summary Modal */}
+      <BackgroundSummaryModal
+        isOpen={backgroundSummaryCandidate !== null}
+        onClose={() => setBackgroundSummaryCandidate(null)}
+        candidate={backgroundSummaryCandidate || candidates[0] || { id: '', name: '', title: '', bio: '', avatar: '', email: '', completedCourseIds: [], skills: [], projects: [], status: 'Active' }}
+        reportState={backgroundSummaryCandidate ? (backgroundReports[backgroundSummaryCandidate.id] || null) : null}
+        onRunReport={onRunBackgroundSummary}
+        onReRunReport={onReRunBackgroundSummary}
+      />
 
       {/* ── Toast notification ── */}
       <AnimatePresence>

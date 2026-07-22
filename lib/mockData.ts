@@ -1,5 +1,166 @@
 import { Course, Candidate, Job, CourseRequest } from './types';
 
+const SVG_ICONS: Record<string, string> = {
+  'LinkedIn': '<svg viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>',
+  'Instagram': '<svg viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>',
+  'Facebook': '<svg viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>',
+  'GitHub': '<svg viewBox="0 0 24 24" fill="#181717"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>',
+};
+
+export const REFERENCE_SITES = [
+  { name: 'LinkedIn', url: 'https://www.linkedin.com', icon: SVG_ICONS['LinkedIn'] },
+  { name: 'Instagram', url: 'https://www.instagram.com', icon: SVG_ICONS['Instagram'] },
+  { name: 'Facebook', url: 'https://www.facebook.com', icon: SVG_ICONS['Facebook'] },
+  { name: 'GitHub', url: 'https://github.com', icon: SVG_ICONS['GitHub'] },
+  { name: 'Google Scholar', url: 'https://scholar.google.com' },
+  { name: 'ResearchGate', url: 'https://www.researchgate.net' },
+  { name: 'arXiv', url: 'https://arxiv.org' },
+  { name: 'IEEE Xplore', url: 'https://ieeexplore.ieee.org' },
+];
+
+export function pickRandomReferences() {
+  const shuffled = [...REFERENCE_SITES].sort(() => Math.random() - 0.5);
+  const pickCount = Math.floor(Math.random() * shuffled.length) + 1;
+  return shuffled.slice(0, pickCount);
+}
+
+export function generateBackgroundReportHtml(candidate: Candidate, includeReferences = true, referenceSites: (typeof REFERENCE_SITES) = REFERENCE_SITES, referenceStyle: 'button' | 'icon-text' = 'button'): string {
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const { name: candidateName, title: candidateRole, avatar, skills, projects, bio } = candidate;
+
+  const skillList = skills.length > 0
+    ? skills.join(', ')
+    : 'software engineering and system development';
+
+  const topSkills = skills.slice(0, 4).join(', ');
+
+  const projectsHtml = projects.length > 0
+    ? projects.map(p => `
+      <div class="project-item">
+        <div class="project-title">${p.title}</div>
+        <div class="project-desc">${p.description}</div>
+        ${p.skills.length > 0 ? `<div class="project-skills">Skills: ${p.skills.join(', ')}</div>` : ''}
+        ${p.link ? `<div class="project-link">Link: <a href="${p.link}">${p.link}</a></div>` : ''}
+      </div>
+    `).join('')
+    : '<p>Active participation in personal and collaborative projects, with hands-on involvement in building and shipping production-quality work.</p>';
+
+  const picked = includeReferences ? referenceSites : [];
+  const referencesHtml = includeReferences && picked.length > 0
+    ? `<section>
+    <h2>References</h2>
+    <p style="font-size: 13px; color: #64748B; margin-bottom: 10px;">Online profiles and publications referenced for this summary:</p>
+    <ul class="references">
+      ${picked.map(s => {
+        if (referenceStyle === 'icon-text') {
+          const iconHtml = (s as any).icon
+            ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0">${(s as any).icon}</span>`
+            : '';
+          return `<li style="display:inline-flex;align-items:center;gap:6px;margin:2px 0">${iconHtml}<a href="${s.url}" target="_blank" style="text-decoration:underline;background:transparent;border:none;padding:0;color:#4F46E5;font-weight:500;font-size:13px">${s.name}</a></li>`;
+        }
+        return `<li><a href="${s.url}" target="_blank">${(s as any).icon || ''} ${s.name}</a></li>`;
+      }).join('\n      ')}
+    </ul>
+  </section>`
+    : '';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Background Summary Report — ${candidateName}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #0F172A; background: #fff; max-width: 900px; margin: 0 auto; padding: 0 56px 64px; line-height: 1.6; word-break: break-word; overflow-wrap: break-word; }
+  .header { border-bottom: 2px solid #4F46E5; padding-bottom: 24px; margin-bottom: 32px; padding-top: 64px; display: flex; align-items: center; gap: 20px; }
+  .header .avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #EEF2FF; flex-shrink: 0; }
+  .header .header-content { flex: 1; }
+  .header h1 { font-size: 26px; font-weight: 800; color: #0F172A; }
+  .header .role { font-size: 15px; color: #4F46E5; font-weight: 600; margin-top: 2px; }
+  .meta { margin-top: 12px; font-size: 0; color: #64748B; }
+  .meta span { display: inline-block; font-size: 12px; vertical-align: middle; margin-right: 16px; margin-bottom: 4px; }
+  .meta .badge { background: #EEF2FF; color: #4F46E5; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 11px; vertical-align: middle; }
+  @page { margin: 0; }
+  @media print { section, .project-item { page-break-inside: avoid; } }
+  section { margin-bottom: 28px; padding-top: 32px; }
+  section h2 { font-size: 16px; font-weight: 700; color: #4F46E5; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #E2E8F0; }
+  section p { font-size: 14px; color: #334155; line-height: 1.7; }
+  section p + p { margin-top: 12px; }
+  .achievements { list-style: none; padding: 0; }
+  .achievements li { padding: 8px 0; padding-left: 20px; position: relative; font-size: 14px; color: #334155; }
+  .achievements li::before { content: "■"; position: absolute; left: 0; color: #10B981; font-size: 10px; top: 11px; }
+  .project-item { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+  .project-title { font-weight: 700; font-size: 14px; color: #0F172A; }
+  .project-desc { font-size: 13px; color: #475569; margin-top: 4px; line-height: 1.5; }
+  .project-skills { font-size: 11px; color: #4F46E5; margin-top: 6px; font-weight: 600; }
+  .project-link { font-size: 11px; margin-top: 4px; }
+  .project-link a { color: #4F46E5; text-decoration: underline; }
+  .references { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .references li { display: inline-flex; }
+  .references a { display: inline-flex; align-items: center; gap: 4px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px 10px 6px 14px; font-size: 13px; color: #4F46E5; text-decoration: none; font-weight: 500; }
+  .references a svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .references a:hover { background: #EEF2FF; }
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #E2E8F0; font-size: 11px; color: #94A3B8; text-align: center; font-style: italic; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <img class="avatar" src="${avatar}" alt="${candidateName}" />
+    <div class="header-content">
+      <h1>Candidate Background Summary</h1>
+      <div class="role">${candidateName} — ${candidateRole}</div>
+      <div class="meta">
+        <span>Generated: ${today}</span>
+        <span class="badge">CareerOS AI</span>
+      </div>
+      <div class="meta">
+        <span>Sources Scanned: LinkedIn, Personal Portfolio, GitHub</span>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Candidate Introduction</h2>
+    <p>${candidateName} is a ${candidateRole} with demonstrated technical expertise spanning ${skillList}. Based on public professional activity and contributions, ${candidateName} has built a strong foundation in ${topSkills}${skills.length > 4 ? ', along with broader engineering competencies' : ''}. Profile activity indicates consistent hands-on work with modern development frameworks, version control workflows, and production deployment practices.</p>
+    <p>${candidateName} has completed ${candidate.completedCourseIds.length} structured learning pathways${candidate.completedCourseIds.length > 0 ? ', with training spanning modern software architecture, AI/ML integration, and scalable system design' : ''}. Public repositories and community contributions reflect experience with production-grade tooling, code review processes, and collaborative development methodologies. The candidate's technical trajectory demonstrates progressive ownership from feature implementation to system-level architectural thinking.</p>
+    <p>${bio || 'The candidate maintains an active professional online presence with steady engagement across technical communities and peer networks.'}</p>
+  </section>
+
+  <section>
+    <h2>Key Achievements</h2>
+    <ul class="achievements">
+      <li>Recognized contributor in relevant technical community discussions and open-source ecosystems</li>
+      <li>Consistent track record of delivering personal and collaborative software projects from concept to deployment</li>
+      <li>Positive engagement patterns across professional platforms demonstrating knowledge sharing and peer collaboration</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Projects &amp; Research</h2>
+    ${projectsHtml}
+
+  </section>
+
+  <section>
+    <h2>Character &amp; Communication Style</h2>
+    <p>Recent posts and interactions across LinkedIn and other professional platforms reflect a clear, approachable communication style. Content shows a consistent pattern of sharing technical knowledge, acknowledging collaborators, and engaging constructively with peers. The candidate demonstrates strong written communication skills with an ability to articulate complex technical concepts in an accessible manner.</p>
+  </section>
+
+  <section>
+    <h2>Conclusion Summary</h2>
+    <p>${candidateName} presents as a strong candidate for ${candidateRole}-type positions, combining solid technical capabilities with clear communication and a collaborative, team-oriented working style. The candidate's background, project portfolio, and professional engagement indicate readiness to contribute effectively in a production engineering environment.</p>
+  </section>
+
+  ${referencesHtml}
+
+  <div class="footer">
+    AI-generated summary, for referencing purposes only.
+  </div>
+</body>
+</html>`;
+}
+
 export const INITIAL_COURSES: Course[] = [
   {
     id: 'course-1',
