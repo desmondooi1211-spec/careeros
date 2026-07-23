@@ -20,6 +20,7 @@ const getLocalDevOrigins = (): string[] => {
 };
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   images: {
     // Allow unoptimized images for static export compatibility
     unoptimized: true,

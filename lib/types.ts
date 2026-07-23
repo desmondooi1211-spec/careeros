@@ -41,13 +41,14 @@ export interface Candidate {
   avatar: string;
   email: string;
   completedCourseIds: string[];
-  skills: string[]; // Dynamically aggregated from completed courses
+  skills: string[];
   skillLevels?: Record<string, 'Beginner' | 'Intermediate' | 'Pro'>;
   targetJobId?: string;
   followedJobIds?: string[];
   projects: Project[];
   status: 'Active' | 'Interviewing' | 'Open for Offers';
   isCurrentUser?: boolean;
+  softSkillEvaluation?: SoftSkillEvaluation;
 }
 
 export interface SyllabusSlide {
@@ -107,5 +108,32 @@ export interface BackgroundReportState {
   candidateId: string;
   reportStatus: 'idle' | 'running' | 'done';
   reportUrl: string;
+}
+
+export type SoftSkillBadge = 'gold' | 'silver' | 'bronze';
+
+export type SoftSkillTrait = 'communication' | 'leadership' | 'decisionMaking' | 'criticalThinking';
+
+export interface CriteriaResult {
+  score: number;
+  note: string;
+}
+
+export interface CriteriaProfile {
+  starStructure: CriteriaResult;
+  relevance: CriteriaResult;
+  communicationQuality: CriteriaResult;
+  depthSpecificity: CriteriaResult;
+  speakingConfidence: CriteriaResult;
+  badge: SoftSkillBadge;
+  label: string;
+}
+
+export interface SoftSkillEvaluation {
+  attemptCount: number;
+  completedAt?: number;
+  selectedQuestions: Record<SoftSkillTrait, string>;
+  profileByTrait: Record<SoftSkillTrait, CriteriaProfile>;
+  badges: Record<SoftSkillTrait, SoftSkillBadge>;
 }
 

@@ -16,7 +16,7 @@ import {
   INITIAL_REQUESTS 
 } from '@/lib/mockData';
 import { generateSyllabusForJob } from '@/lib/syllabusGenerator';
-import { Course, Candidate, Job, CourseRequest, Project, BackgroundReportState } from '@/lib/types';
+import { Course, Candidate, Job, CourseRequest, Project, BackgroundReportState, SoftSkillEvaluation } from '@/lib/types';
 import { 
   Layers, 
   Sparkles, 
@@ -59,6 +59,7 @@ export default function Home() {
   const [courseRequests, setCourseRequests] = useState<CourseRequest[]>([]);
   const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
   const [backgroundReports, setBackgroundReports] = useState<Record<string, BackgroundReportState>>({});
+  const [softSkillEvaluation, setSoftSkillEvaluation] = useState<SoftSkillEvaluation | undefined>(undefined);
 
   // Track state initialized
   const [isLoaded, setIsLoaded] = useState(false);
@@ -106,6 +107,17 @@ export default function Home() {
       return c;
     }));
   }, [user, userRole, isLoaded]);
+
+  // Sync softSkillEvaluation with current user's candidate profile
+  useEffect(() => {
+    if (!isLoaded || userRole !== 'candidate') return;
+    setCandidates(prev => prev.map(c => {
+      if (c.isCurrentUser) {
+        return { ...c, softSkillEvaluation };
+      }
+      return c;
+    }));
+  }, [softSkillEvaluation, isLoaded, userRole]);
 
   const handleSwitchRoleWithConfirmation = async (targetRole: 'candidate' | 'recruiter') => {
     const roleLabel = targetRole === 'candidate' ? 'Candidate (Khor Ming Yao)' : 'Recruiter (Teh Meng Chang)';
@@ -220,6 +232,10 @@ export default function Home() {
       if (storedReports) setBackgroundReports(JSON.parse(storedReports));
       else setBackgroundReports({});
 
+      const storedSoftSkill = localStorage.getItem('career_os_soft_skill_eval');
+      if (storedSoftSkill) setSoftSkillEvaluation(JSON.parse(storedSoftSkill));
+      else setSoftSkillEvaluation(undefined);
+
     } catch (e) {
       console.error('Failed to load CareerOS storage:', e);
       // Fallback
@@ -242,10 +258,11 @@ export default function Home() {
       localStorage.setItem('career_os_requests', JSON.stringify(courseRequests));
       localStorage.setItem('career_os_applied_ids', JSON.stringify(appliedJobIds));
       localStorage.setItem('career_os_background_reports', JSON.stringify(backgroundReports));
+      localStorage.setItem('career_os_soft_skill_eval', JSON.stringify(softSkillEvaluation));
     } catch (e) {
       console.error('Failed to save state to localStorage:', e);
     }
-  }, [courses, candidates, jobs, courseRequests, appliedJobIds, backgroundReports, isLoaded]);
+  }, [courses, candidates, jobs, courseRequests, appliedJobIds, backgroundReports, softSkillEvaluation, isLoaded]);
 
   // Reset helper
   const handleResetWorkspace = () => {
@@ -256,6 +273,7 @@ export default function Home() {
       localStorage.removeItem('career_os_requests');
       localStorage.removeItem('career_os_applied_ids');
       localStorage.removeItem('career_os_background_reports');
+      localStorage.removeItem('career_os_soft_skill_eval');
       
       setCourses(INITIAL_COURSES);
       setCandidates(INITIAL_CANDIDATES);
@@ -263,6 +281,7 @@ export default function Home() {
       setCourseRequests(INITIAL_REQUESTS);
       setAppliedJobIds([]);
       setBackgroundReports({});
+      setSoftSkillEvaluation(undefined);
       setActivePage('marketplace');
       
       // Trigger subtle page reload
@@ -436,6 +455,18 @@ export default function Home() {
       }
       return cand;
     }));
+  };
+
+  const handleSaveSoftSkillEvaluation = (evaluation: SoftSkillEvaluation) => {
+    const withTimestamp: SoftSkillEvaluation = { ...evaluation, completedAt: Date.now() };
+    setSoftSkillEvaluation(withTimestamp);
+    setCandidates(prevCands => prevCands.map(cand => {
+      if (cand.isCurrentUser) {
+        return { ...cand, softSkillEvaluation: withTimestamp };
+      }
+      return cand;
+    }));
+    setCandidateTab('profile');
   };
 
   // RECRUITER ACTIONS
@@ -959,6 +990,8 @@ Key Requirements:
                     onUnfollowJob={handleUnfollowJob}
                     activeTab={candidateTab}
                     setActiveTab={setCandidateTab}
+                    softSkillEvaluation={softSkillEvaluation}
+                    onSaveSoftSkillEvaluation={handleSaveSoftSkillEvaluation}
                   />
                 )}
 
